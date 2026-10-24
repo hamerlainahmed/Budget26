@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="2.3"
+        android:scaleY="2.3"
+        android:translateX="26.4"
+        android:translateY="26.4">
+        <!-- Bold filled institutional finance & ledger columns icon -->
+        <path
+            android:fillColor="#FFF59E0B"
+            android:pathData="M12,2L2,7v2h20V7L12,2z" />
+        <path
+            android:fillColor="#FF10B981"
+            android:pathData="M4,11v7h3v-7H4zM10.5,11v7h3v-7H10.5zM17,11v7h3v-7H17z" />
+        <path
+            android:fillColor="#FFF8FAFC"
+            android:pathData="M2,20h20v2H2V20z" />
+    </group>
+</vector>

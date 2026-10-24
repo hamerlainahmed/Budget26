@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="360dp"
+    android:height="140dp"
+    android:viewportWidth="360"
+    android:viewportHeight="140">
+    <!-- Decorative FinTech geometric background waves and financial chart bars -->
+    <path
+        android:pathData="M0,140 L0,60 C70,30 140,95 220,50 C280,15 320,40 360,20 L360,140 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="0"
+                android:startY="20"
+                android:endX="360"
+                android:endY="140"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#2210B981" />
+                <item android:offset="1.0" android:color="#05F59E0B" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path
+        android:fillColor="#1A10B981"
+        android:pathData="M35,85h14v45h-14zM58,65h14v65h-14zM81,45h14v85h-14zM104,25h14v105h-14z" />
+    <path
+        android:strokeColor="#44F59E0B"
+        android:strokeWidth="2.5"
+        android:pathData="M25,95 L65,68 L110,42 L165,54 L230,22 L310,34" />
+    <path
+        android:fillColor="#FFF59E0B"
+        android:pathData="M110,42m-4,0a4,4 0,1 1,8 0a4,4 0,1 1,-8 0" />
+    <path
+        android:fillColor="#FF10B981"
+        android:pathData="M230,22m-5,0a5,5 0,1 1,10 0a5,5 0,1 1,-10 0" />
+</vector>

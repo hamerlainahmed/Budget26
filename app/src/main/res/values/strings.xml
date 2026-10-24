@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">الميزانية المدرسية 2026</string>
+    <string name="subtitle_regulatory">وفق المنشور 29/2018 المعدل والمتمم بالمنشور الوزاري 13/2026</string>
+    <string name="action_open_fiscal_year">فتح سنة مالية</string>
+    <string name="action_quick_expense">+ نفقة سريعة</string>
+    <string name="kpi_total_authorized">مجموع الاعتمادات المرخصة</string>
+    <string name="kpi_total_spent">مجموع النفقات الملتزم بها</string>
+    <string name="kpi_remaining_balance">الرصيد المتبقي العام</string>
+    <string name="kpi_catering_subsidy">اعتماد الإطعام والمنح 2026</string>
+    <string name="tab_chapters">تفاصيل الأبواب</string>
+    <string name="tab_allocations">حجز الاعتمادات</string>
+    <string name="tab_revenues">إيرادات التسيير</string>
+    <string name="tab_transactions">سجل الفواتير</string>
+    <string name="warning_chapter2_title">تنبيه رقابي إلزامي - شرط الباب 2 (المنشور 13/2026)</string>
+    <string name="status_stable">مستقر (&lt;70%)</string>
+    <string name="status_elevated">استهلاك مرتفع (70-90%)</string>
+    <string name="status_critical">حرج (&gt;90%)</string>
+</resources>

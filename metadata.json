@@ -1,0 +1,6 @@
+{
+  "name": "الميزانية المدرسية 2026",
+  "description": "نظام التسيير المالي والمحاسبي للمؤسسات التربوية الجزائرية وفق المنشور 29/2018 والمنشور الوزاري 13/2026",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
