@@ -93,7 +93,7 @@ fun SchoolBudgetDashboardScreen(
                 },
                 text = {
                     Text(
-                        text = "حوالة دفع جديدة",
+                        text = "حوالة دفع (${uiState.config.fiscalYear})",
                         style = MaterialTheme.typography.labelLarge
                     )
                 },
@@ -120,12 +120,14 @@ fun SchoolBudgetDashboardScreen(
                 ),
                 verticalArrangement = Arrangement.spacedBy(14.dp)
             ) {
-                // 1. Top Executive Header
+                // 1. Top Executive Header with Saved Fiscal Years History Bar
                 item(key = "executive_header") {
                     ExecutiveHeaderCard(
                         config = uiState.config,
+                        savedFiscalYears = uiState.savedFiscalYears,
                         isDarkTheme = isDarkTheme,
                         onToggleTheme = onToggleTheme,
+                        onSwitchFiscalYear = { year -> viewModel.switchFiscalYear(year) },
                         onOpenFiscalYearSetup = { showFiscalYearWizard = true },
                         onQuickExpense = {
                             preselectedExpenseArticle = null
@@ -193,6 +195,7 @@ fun SchoolBudgetDashboardScreen(
                 // 2. KPI Overview Cards (Modern Bento Grid)
                 item(key = "kpi_bento_grid") {
                     KpiBentoGrid(
+                        fiscalYear = uiState.config.fiscalYear,
                         totalAuthorized = uiState.totalAuthorizedBudget,
                         totalCommitted = uiState.totalCommittedExpenses,
                         netRemaining = uiState.netRemainingBalance,
@@ -204,7 +207,7 @@ fun SchoolBudgetDashboardScreen(
                     )
                 }
 
-                // 3. Regulatory Audit Warning (شرط الباب 2 - المنشور 13/2026)
+                // 3. Regulatory Audit Warning (شرط الباب 02 - المنشور 13/2026)
                 item(key = "chapter2_audit_banner") {
                     Chapter2AuditBanner(
                         audit = uiState.chapter2Audit,
@@ -242,9 +245,9 @@ fun SchoolBudgetDashboardScreen(
                             AllocationsMatrixSection(
                                 expenditureChapters = uiState.expenditureChapters,
                                 revenueChapters = uiState.revenueChapters,
-                                onUpdateAllocation = { articleId, articleName, newAmount ->
+                                onUpdateAllocation = { articleRecordId, articleName, newAmount ->
                                     viewModel.updateArticleAllocation(
-                                        articleId = articleId,
+                                        articleRecordId = articleRecordId,
                                         articleName = articleName,
                                         newAmount = newAmount
                                     )
@@ -254,6 +257,7 @@ fun SchoolBudgetDashboardScreen(
 
                         BudgetTab.TRANSACTIONS_LEDGER -> {
                             TransactionsLedgerSection(
+                                fiscalYear = uiState.config.fiscalYear,
                                 transactions = uiState.transactions,
                                 searchQuery = uiState.searchQuery,
                                 onSearchQueryChange = { viewModel.updateSearchQuery(it) },
@@ -272,19 +276,22 @@ fun SchoolBudgetDashboardScreen(
         }
     }
 
-    // Fiscal Year Onboarding Wizard Modal
+    // Fiscal Year Onboarding & History Wizard Modal
     if (showFiscalYearWizard) {
         FiscalYearOnboardingModal(
             initialConfig = uiState.config,
+            savedFiscalYears = uiState.savedFiscalYears,
+            onSwitchToSavedYear = { year -> viewModel.switchFiscalYear(year) },
             onDismiss = { showFiscalYearWizard = false },
-            onSaveAndInjectSubsidy = { name, wilaya, regime, year, internalCount, semiCount ->
+            onSaveAndInjectSubsidy = { name, wilaya, regime, year, internalCount, semiCount, clearExpenses ->
                 viewModel.applyCateringBudget(
                     institutionName = name,
                     wilayaName = wilaya,
                     regime = regime,
                     fiscalYear = year,
                     internalCount = internalCount,
-                    semiInternalCount = semiCount
+                    semiInternalCount = semiCount,
+                    clearExpensesForTargetYear = clearExpenses
                 )
             }
         )

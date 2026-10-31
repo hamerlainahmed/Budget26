@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -25,7 +24,6 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
@@ -66,6 +64,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.data.ArticleEntity
 import com.example.data.ChapterWithArticles
+import com.example.data.Circular13Constants
 import com.example.data.SectionType
 import com.example.data.TransactionEntity
 import com.example.ui.BudgetTab
@@ -155,9 +154,9 @@ fun ChapterDeepDiveSection(
     var showRevenuesAlso by rememberSaveable { mutableStateOf(true) }
     val expandedState = remember {
         mutableStateMapOf<String, Boolean>().apply {
-            put("EXP_CH2", true)
-            put("EXP_CH6", true)
-            put("REV_CH1", true)
+            put(Circular13Constants.EXP_CHAPTER_2_BASE_ID, true)
+            put(Circular13Constants.EXP_CHAPTER_6_BASE_ID, true)
+            put("REV_CH01", true)
         }
     }
 
@@ -167,14 +166,13 @@ fun ChapterDeepDiveSection(
             .testTag("chapter_deep_dive_section"),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // Section filter chips (Expenditures + Revenues overview)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "تفاصيل الأبواب والمواد المحاسبية",
+                text = "مدونة الأبواب والمواد (المنشور 29/2018)",
                 style = MaterialTheme.typography.titleMedium,
                 color = MaterialTheme.colorScheme.onBackground
             )
@@ -184,7 +182,7 @@ fun ChapterDeepDiveSection(
                 onClick = { showRevenuesAlso = !showRevenuesAlso },
                 label = {
                     Text(
-                        text = if (showRevenuesAlso) "إخفاء باب الإيرادات" else "عرض باب الإيرادات (القسم 1)",
+                        text = if (showRevenuesAlso) "إخفاء أبواب الإيرادات" else "عرض أبواب الإيرادات (العنوان 1)",
                         style = MaterialTheme.typography.labelMedium
                     )
                 },
@@ -201,7 +199,7 @@ fun ChapterDeepDiveSection(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "القسم الأول: إيرادات التسيير (يتضمن الضخ الآلي لإعانة الإطعام والمنح 111/01)",
+                        text = "العنوان الأول: الإيرادات (الأبواب 01 - 09 • يتضمن الضخ الآلي لإعانة التغذية ب01/م01)",
                         style = MaterialTheme.typography.labelLarge,
                         color = Color(0xFF0EA5E9),
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
@@ -222,30 +220,35 @@ fun ChapterDeepDiveSection(
             }
         }
 
-        Surface(
-            shape = RoundedCornerShape(12.dp),
-            color = EmeraldStable.copy(alpha = 0.12f),
-            border = BorderStroke(1.dp, EmeraldStable.copy(alpha = 0.35f)),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = "القسم الثاني: نفقات التسيير - الفرع الأول (أبواب التسيير العام والإطعام 1..7)",
-                style = MaterialTheme.typography.labelLarge,
-                color = EmeraldStable,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
-            )
-        }
+        // Group Expenditure Chapters by Branch (الفرع الأول، الفرع الثاني، الفرع الثالث)
+        val expByBranch = expenditureChapters.groupBy { it.chapter.branchNumber to it.chapter.branchTitle }
+        for ((branchKey, chaptersInBranch) in expByBranch) {
+            val branchTitle = branchKey.second
+            Surface(
+                shape = RoundedCornerShape(12.dp),
+                color = EmeraldStable.copy(alpha = 0.12f),
+                border = BorderStroke(1.dp, EmeraldStable.copy(alpha = 0.35f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = branchTitle,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = EmeraldStable,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                )
+            }
 
-        expenditureChapters.forEach { chapterWithArticles ->
-            val isExpanded = expandedState[chapterWithArticles.chapter.id] ?: false
-            ExecutiveChapterCard(
-                chapterWithArticles = chapterWithArticles,
-                isExpanded = isExpanded,
-                onToggleExpand = {
-                    expandedState[chapterWithArticles.chapter.id] = !isExpanded
-                },
-                onRegisterExpenseForArticle = onRegisterExpenseForArticle
-            )
+            chaptersInBranch.forEach { chapterWithArticles ->
+                val isExpanded = expandedState[chapterWithArticles.chapter.id] ?: false
+                ExecutiveChapterCard(
+                    chapterWithArticles = chapterWithArticles,
+                    isExpanded = isExpanded,
+                    onToggleExpand = {
+                        expandedState[chapterWithArticles.chapter.id] = !isExpanded
+                    },
+                    onRegisterExpenseForArticle = onRegisterExpenseForArticle
+                )
+            }
         }
     }
 }
@@ -265,6 +268,7 @@ private fun ExecutiveChapterCard(
         animationSpec = tween(durationMillis = 650),
         label = "chapterProgress_${chapter.id}"
     )
+    val paddedChapterNum = chapter.chapterNumber.toString().padStart(2, '0')
 
     Card(
         modifier = Modifier
@@ -278,7 +282,6 @@ private fun ExecutiveChapterCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            // Chapter Header (Clickable to expand/collapse)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -302,7 +305,7 @@ private fun ExecutiveChapterCard(
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Text(
-                                    text = "0${chapter.chapterNumber}",
+                                    text = paddedChapterNum,
                                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                     color = statusColor
                                 )
@@ -313,7 +316,7 @@ private fun ExecutiveChapterCard(
 
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "الباب ${chapter.chapterNumber}: ${chapter.name}",
+                                text = "${chapter.officialCode}: ${chapter.name}",
                                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.onSurface
                             )
@@ -336,7 +339,7 @@ private fun ExecutiveChapterCard(
                         ) {
                             Text(
                                 text = if (isRevenue) {
-                                    "إيراد معتمد"
+                                    "إيراد (${chapterWithArticles.articles.size} مواد)"
                                 } else {
                                     "${formatPercentage(chapterWithArticles.consumptionRate)} • ${healthStatusLabelAr(chapterWithArticles.healthStatus)}"
                                 },
@@ -357,7 +360,6 @@ private fun ExecutiveChapterCard(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // Financial Metrics Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
@@ -393,7 +395,6 @@ private fun ExecutiveChapterCard(
                 )
             }
 
-            // Expandable Constituent Articles List
             AnimatedVisibility(visible = isExpanded) {
                 Column(
                     modifier = Modifier
@@ -407,7 +408,10 @@ private fun ExecutiveChapterCard(
                             article = article,
                             isRevenue = isRevenue,
                             onQuickSpend = {
-                                onRegisterExpenseForArticle(article, "الباب ${chapter.chapterNumber}: ${chapter.name}")
+                                onRegisterExpenseForArticle(
+                                    article,
+                                    "${chapter.officialCode}: ${chapter.name}"
+                                )
                             }
                         )
                     }
@@ -449,6 +453,7 @@ private fun ArticleDeepDiveRow(
         animationSpec = tween(500),
         label = "articleBar_${article.id}"
     )
+    val paddedArtNum = article.articleNumber.toString().padStart(2, '0')
 
     Surface(
         shape = RoundedCornerShape(14.dp),
@@ -460,7 +465,7 @@ private fun ArticleDeepDiveRow(
         ),
         modifier = Modifier
             .fillMaxWidth()
-            .testTag("article_row_${article.id}")
+            .testTag("article_row_${article.baseArticleId}")
     ) {
         Column(
             modifier = Modifier
@@ -492,7 +497,7 @@ private fun ArticleDeepDiveRow(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "المادة 0${article.articleNumber}: ${article.name}",
+                            text = "المادة $paddedArtNum: ${article.name}",
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -519,7 +524,7 @@ private fun ArticleDeepDiveRow(
                     TextButton(
                         onClick = onQuickSpend,
                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                        modifier = Modifier.testTag("spend_from_article_${article.id}")
+                        modifier = Modifier.testTag("spend_from_article_${article.baseArticleId}")
                     ) {
                         Icon(
                             imageVector = Icons.Default.Add,
@@ -594,7 +599,7 @@ private fun ArticleDeepDiveRow(
 fun AllocationsMatrixSection(
     expenditureChapters: List<ChapterWithArticles>,
     revenueChapters: List<ChapterWithArticles>,
-    onUpdateAllocation: (articleId: String, articleName: String, newAmount: Double) -> Unit,
+    onUpdateAllocation: (articleRecordId: String, articleName: String, newAmount: Double) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var editingArticleId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -626,7 +631,7 @@ fun AllocationsMatrixSection(
                 )
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "جدول حجز الاعتمادات: اضغط على أي مادة لتعديل الاعتماد المرخص به مباشرة مع معاينة فورية للرصيد المتبقي.",
+                    text = "جدول حجز الاعتمادات (مدونة 29/2018): اضغط على أي مادة لتعديل الاعتماد المفتوح للسنة المالية المختارة.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface
                 )
@@ -657,7 +662,7 @@ fun AllocationsMatrixSection(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "الباب ${chapter.chapterNumber}: ${chapter.name}",
+                            text = "${chapter.officialCode}: ${chapter.name}",
                             style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.weight(1f)
@@ -708,6 +713,7 @@ private fun AllocationMatrixItemRow(
     onSaveEdit: () -> Unit,
     onCancelEdit: () -> Unit
 ) {
+    val paddedArtNum = article.articleNumber.toString().padStart(2, '0')
     Surface(
         shape = RoundedCornerShape(12.dp),
         color = if (isEditing) {
@@ -723,7 +729,7 @@ private fun AllocationMatrixItemRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(enabled = !isEditing) { onStartEdit() }
-            .testTag("matrix_article_row_${article.id}")
+            .testTag("matrix_article_row_${article.baseArticleId}")
     ) {
         Column(
             modifier = Modifier
@@ -744,7 +750,7 @@ private fun AllocationMatrixItemRow(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = article.name,
+                            text = "المادة $paddedArtNum: ${article.name}",
                             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -767,7 +773,7 @@ private fun AllocationMatrixItemRow(
                             onClick = onStartEdit,
                             modifier = Modifier
                                 .size(40.dp)
-                                .testTag("edit_allocation_btn_${article.id}")
+                                .testTag("edit_allocation_btn_${article.baseArticleId}")
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Edit,
@@ -795,7 +801,7 @@ private fun AllocationMatrixItemRow(
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .testTag("allocation_input_${article.id}")
+                            .testTag("allocation_input_${article.baseArticleId}")
                     )
 
                     Row(
@@ -827,7 +833,7 @@ private fun AllocationMatrixItemRow(
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             IconButton(
                                 onClick = onCancelEdit,
-                                modifier = Modifier.testTag("cancel_allocation_btn_${article.id}")
+                                modifier = Modifier.testTag("cancel_allocation_btn_${article.baseArticleId}")
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
@@ -839,7 +845,7 @@ private fun AllocationMatrixItemRow(
                                 onClick = onSaveEdit,
                                 colors = ButtonDefaults.buttonColors(containerColor = EmeraldStable),
                                 shape = RoundedCornerShape(10.dp),
-                                modifier = Modifier.testTag("save_allocation_btn_${article.id}")
+                                modifier = Modifier.testTag("save_allocation_btn_${article.baseArticleId}")
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Check,
@@ -859,10 +865,10 @@ private fun AllocationMatrixItemRow(
 
 /**
  * Tab 3: سجل الفواتير والمصروفات (Transactions Ledger)
- * Full audit trail of committed expenses with instant search and credit rollback/refund.
  */
 @Composable
 fun TransactionsLedgerSection(
+    fiscalYear: Int,
     transactions: List<TransactionEntity>,
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
@@ -879,7 +885,7 @@ fun TransactionsLedgerSection(
         OutlinedTextField(
             value = searchQuery,
             onValueChange = onSearchQueryChange,
-            placeholder = { Text("بحث برقم الحوالة، الممون، المادة المحاسبية، أو البيان...") },
+            placeholder = { Text("بحث في سجل السنة المالية $fiscalYear برقم الحوالة، الممون، أو المادة...") },
             leadingIcon = {
                 Icon(
                     imageVector = Icons.Default.Search,
@@ -925,17 +931,17 @@ fun TransactionsLedgerSection(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "لا توجد فواتير أو حوالات مطابقة",
+                        text = "سجل النفقات للسنة المالية $fiscalYear فارغ حالياً (0 حوالات)",
                         style = MaterialTheme.typography.titleMedium
                     )
                     Text(
-                        text = "يمكنك تسجيل نفقة جديدة وسيتم خصمها آلياً من اعتماد المادة المختارة.",
+                        text = "تبدأ كل سنة مالية جديدة بسجل نفقات فارغ ومستقل، مع حفظ سجلات السنوات السابقة في الأرشيف.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Button(onClick = onOpenNewExpenseModal) {
-                        Text("+ تسجيل حوالة دفع جديدة")
+                        Text("+ تسجيل حوالة دفع في سنة $fiscalYear")
                     }
                 }
             }
@@ -989,7 +995,7 @@ private fun TransactionLedgerCard(
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                     Text(
-                        text = formatLedgerDate(transaction.timestamp),
+                        text = "${formatLedgerDate(transaction.timestamp)} • سنة ${transaction.fiscalYear}",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )

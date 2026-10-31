@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -23,10 +22,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AddCircleOutline
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.EventNote
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.WarningAmber
@@ -35,6 +36,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -76,6 +78,8 @@ import com.example.ui.theme.EmeraldStable
 @Composable
 fun FiscalYearOnboardingModal(
     initialConfig: InstitutionConfigEntity,
+    savedFiscalYears: List<InstitutionConfigEntity>,
+    onSwitchToSavedYear: (Int) -> Unit,
     onDismiss: () -> Unit,
     onSaveAndInjectSubsidy: (
         institutionName: String,
@@ -83,14 +87,20 @@ fun FiscalYearOnboardingModal(
         regime: String,
         fiscalYear: Int,
         internalCount: Int,
-        semiInternalCount: Int
+        semiInternalCount: Int,
+        clearExpensesForTargetYear: Boolean
     ) -> Unit
 ) {
     BackHandler(onBack = onDismiss)
 
+    val maxSavedYear = remember(savedFiscalYears, initialConfig) {
+        (savedFiscalYears.maxOfOrNull { it.fiscalYear } ?: initialConfig.fiscalYear)
+    }
+
     var institutionName by rememberSaveable { mutableStateOf(initialConfig.institutionName) }
     var wilayaName by rememberSaveable { mutableStateOf(initialConfig.wilayaName) }
     var selectedRegime by rememberSaveable { mutableStateOf(initialConfig.regime) }
+    // Default to opening the next new fiscal year or editing the desired year
     var fiscalYearText by rememberSaveable { mutableStateOf(initialConfig.fiscalYear.toString()) }
     var internalCountText by rememberSaveable {
         mutableStateOf(initialConfig.internalScholarshipCount.toString())
@@ -98,8 +108,13 @@ fun FiscalYearOnboardingModal(
     var semiInternalCountText by rememberSaveable {
         mutableStateOf(initialConfig.semiInternalScholarshipCount.toString())
     }
+    // By default, opening a fiscal year clears expenses for the target year while keeping previous years in history
+    var clearExpensesForTargetYear by rememberSaveable { mutableStateOf(true) }
 
     val regimes = listOf("داخلي ونصف داخلي", "نصف داخلي", "داخلي", "خارجي")
+
+    val enteredYear = fiscalYearText.toIntOrNull() ?: initialConfig.fiscalYear
+    val isBrandNewYear = savedFiscalYears.none { it.fiscalYear == enteredYear }
 
     val internalCount = internalCountText.toIntOrNull()?.coerceAtLeast(0) ?: 0
     val semiInternalCount = semiInternalCountText.toIntOrNull()?.coerceAtLeast(0) ?: 0
@@ -147,12 +162,12 @@ fun FiscalYearOnboardingModal(
                         Spacer(modifier = Modifier.width(8.dp))
                         Column {
                             Text(
-                                text = "فتح وإعداد السنة المالية 2026",
+                                text = "فتح سنة مالية جديدة / سجل السنوات",
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "محرك احتساب إعانة الإطعام والمنح (المنشور 13/2026)",
+                                text = "كل سنة مالية تحفظ نفقاتها وسجلها مستقلاً في قاعدة البيانات",
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -169,6 +184,88 @@ fun FiscalYearOnboardingModal(
 
                 HorizontalDivider()
 
+                // 1. Saved Fiscal Years History Switcher inside Modal
+                if (savedFiscalYears.isNotEmpty()) {
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.History,
+                                        contentDescription = null,
+                                        tint = AmberElevated,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = "استرجاع سنة مالية محفوظة (History):",
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+
+                                OutlinedButton(
+                                    onClick = {
+                                        val nextYear = maxSavedYear + 1
+                                        fiscalYearText = nextYear.toString()
+                                        clearExpensesForTargetYear = true
+                                    },
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                                    shape = RoundedCornerShape(10.dp),
+                                    modifier = Modifier.testTag("prepare_next_fiscal_year_btn")
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.AddCircleOutline,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = "تحضير سنة ${maxSavedYear + 1}",
+                                        style = MaterialTheme.typography.labelMedium
+                                    )
+                                }
+                            }
+
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                savedFiscalYears.forEach { savedYear ->
+                                    FilterChip(
+                                        selected = savedYear.fiscalYear == initialConfig.fiscalYear,
+                                        onClick = {
+                                            onSwitchToSavedYear(savedYear.fiscalYear)
+                                            onDismiss()
+                                        },
+                                        label = {
+                                            Text(
+                                                text = "سنة ${savedYear.fiscalYear} (${savedYear.internalScholarshipCount + savedYear.semiInternalScholarshipCount} ممنوح)"
+                                            )
+                                        },
+                                        modifier = Modifier.testTag("modal_switch_year_${savedYear.fiscalYear}")
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // 2. Form to open a new fiscal year or reset/configure a year
                 OutlinedTextField(
                     value = institutionName,
                     onValueChange = { institutionName = it },
@@ -195,7 +292,10 @@ fun FiscalYearOnboardingModal(
 
                     OutlinedTextField(
                         value = fiscalYearText,
-                        onValueChange = { fiscalYearText = it },
+                        onValueChange = {
+                            fiscalYearText = it.filter { ch -> ch.isDigit() }
+                            clearExpensesForTargetYear = true
+                        },
                         label = { Text("السنة المالية") },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
@@ -203,6 +303,46 @@ fun FiscalYearOnboardingModal(
                             .weight(0.8f)
                             .testTag("input_fiscal_year")
                     )
+                }
+
+                // Clear expenses option (تفريغ النفقات عند فتح السنة المالية مع حفظ السنوات السابقة)
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = AmberElevated.copy(alpha = 0.12f),
+                    border = BorderStroke(1.dp, AmberElevated.copy(alpha = 0.45f)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { clearExpensesForTargetYear = !clearExpensesForTargetYear }
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = clearExpensesForTargetYear,
+                            onCheckedChange = { clearExpensesForTargetYear = it },
+                            modifier = Modifier.testTag("checkbox_clear_expenses")
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = if (isBrandNewYear) {
+                                    "فتح سنة مالية جديدة ($enteredYear) برصيد نفقات مفرّغ (0.00 د.ج)"
+                                } else {
+                                    "تفريغ/تصفير النفقات المسجلة في سنة $enteredYear والبدء من الصفر"
+                                },
+                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "ملاحظة: جميع السنوات المالية الأخرى تبقى محفوظة بالكامل مع نفقاتها وفواتيرها في سجل السنوات (History).",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 }
 
                 Text(
@@ -312,7 +452,7 @@ fun FiscalYearOnboardingModal(
                         )
 
                         Text(
-                            text = "سيتم ضخ هذا المبلغ آلياً في:\n1) الإيرادات: القسم 1 -> الباب 1 -> المادة 1 (إعانة التغذية والمنح 111/01)\n2) النفقات: القسم 2 -> الفرع 1 -> الباب 6 -> المادة 1 (إطعام التلاميذ الممنوحين 216/01)",
+                            text = "سيتم ضخ هذا المبلغ آلياً في مدونة السنة المالية $enteredYear:\n1) الإيرادات: العنوان 1 -> الباب 01 -> المادة 01 (إعانة التسيير للتغذية ب01/م01)\n2) النفقات: العنوان 2 -> الفرع 1 -> الباب 06 -> المادة 01 (إطعام التلاميذ الداخليين ونصف الداخليين ب06/م01)",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -337,9 +477,10 @@ fun FiscalYearOnboardingModal(
                                 institutionName,
                                 wilayaName,
                                 selectedRegime,
-                                fiscalYearText.toIntOrNull() ?: 2026,
+                                enteredYear,
                                 internalCount,
-                                semiInternalCount
+                                semiInternalCount,
+                                clearExpensesForTargetYear
                             )
                             onDismiss()
                         },
@@ -359,7 +500,7 @@ fun FiscalYearOnboardingModal(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "اعتماد وضخ المخصصات",
+                            text = "فتح سنة $enteredYear وضخ الاعتماد",
                             style = MaterialTheme.typography.labelLarge
                         )
                     }
@@ -388,10 +529,12 @@ fun ExpenseRegistrationModal(
     val allExpenditureArticles = remember(expenditureChapters) {
         expenditureChapters.flatMap { ch ->
             ch.articles.map { article ->
-                article to "الباب ${ch.chapter.chapterNumber}: ${ch.chapter.name}"
+                article to "${ch.chapter.officialCode}: ${ch.chapter.name}"
             }
         }
     }
+
+    val activeFiscalYear = allExpenditureArticles.firstOrNull()?.first?.fiscalYear ?: 2026
 
     var searchFilter by rememberSaveable { mutableStateOf("") }
     var selectedArticleId by rememberSaveable {
@@ -400,7 +543,7 @@ fun ExpenseRegistrationModal(
         )
     }
     var voucherNumber by rememberSaveable {
-        mutableStateOf("MD-2026/${(105..980).random()}")
+        mutableStateOf("MD-$activeFiscalYear/${(105..980).random()}")
     }
     var supplierName by rememberSaveable { mutableStateOf("") }
     var description by rememberSaveable { mutableStateOf("") }
@@ -464,11 +607,11 @@ fun ExpenseRegistrationModal(
                         Spacer(modifier = Modifier.width(8.dp))
                         Column {
                             Text(
-                                text = "تسجيل التزام ونفقة جديدة (حوالة دفع)",
+                                text = "تسجيل نفقة (حوالة دفع - سنة $activeFiscalYear)",
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                             )
                             Text(
-                                text = "اختر المادة المحاسبية وتحقق من الرصيد المتاح قبل الصرف",
+                                text = "اختر الباب والمادة المحاسبية وتحقق من الرصيد المتاح قبل الصرف",
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -482,11 +625,10 @@ fun ExpenseRegistrationModal(
 
                 HorizontalDivider()
 
-                // Searchable Dropdown / List for Articles with real-time Remaining Credit
                 OutlinedTextField(
                     value = searchFilter,
                     onValueChange = { searchFilter = it },
-                    placeholder = { Text("ابحث عن المادة المحاسبية أو رمز الباب (مثال: 216/01 أو سونلغاز)...") },
+                    placeholder = { Text("ابحث عن المادة أو الباب (مثال: ب06/م01 أو ب02/م01 أو الإطعام)...") },
                     leadingIcon = {
                         Icon(imageVector = Icons.Default.Search, contentDescription = null)
                     },
@@ -528,7 +670,7 @@ fun ExpenseRegistrationModal(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable { selectedArticleId = article.id }
-                                    .testTag("select_expense_article_${article.id}")
+                                    .testTag("select_expense_article_${article.baseArticleId}")
                             ) {
                                 Row(
                                     modifier = Modifier
@@ -570,7 +712,6 @@ fun ExpenseRegistrationModal(
                     }
                 }
 
-                // Selected Article Live Credit Status Banner
                 if (selectedArticle != null) {
                     Surface(
                         shape = RoundedCornerShape(12.dp),

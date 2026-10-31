@@ -21,13 +21,16 @@ class ExampleUnitTest {
     @Test
     fun articleHealthMetrics_classifiesConsumptionRatesProperly() {
         val stableArticle = ArticleEntity(
-            id = "E-1-1",
-            chapterId = "EXP_CH1",
+            id = "2026_EXP_05_01",
+            baseArticleId = "EXP_05_01",
+            fiscalYear = 2026,
+            chapterId = "EXP_CH05",
             sectionType = SectionType.EXPENDITURE.name,
+            chapterNumber = 5,
             articleNumber = 1,
-            officialCode = "211/01",
-            name = "وسائل تعليمية",
-            description = "",
+            officialCode = "ب05 / م01",
+            name = "مواد العلوم الفيزيائية والتكنولوجيا والعلوم الطبيعية",
+            description = "المواد الكيميائية والزجاجيات المخبرية",
             allocatedAmount = 100_000.0,
             spentAmount = 65_000.0
         )

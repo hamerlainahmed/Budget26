@@ -8,6 +8,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,6 +30,7 @@ import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.EventNote
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Savings
@@ -80,8 +82,10 @@ import com.example.ui.theme.EmeraldStable
 @Composable
 fun ExecutiveHeaderCard(
     config: InstitutionConfigEntity,
+    savedFiscalYears: List<InstitutionConfigEntity>,
     isDarkTheme: Boolean,
     onToggleTheme: () -> Unit,
+    onSwitchFiscalYear: (Int) -> Unit,
     onOpenFiscalYearSetup: () -> Unit,
     onQuickExpense: () -> Unit,
     modifier: Modifier = Modifier
@@ -101,8 +105,7 @@ fun ExecutiveHeaderCard(
                 painter = painterResource(id = R.drawable.ic_hero_budget_illustration),
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .matchParentSize()
+                modifier = Modifier.matchParentSize()
             )
 
             Column(
@@ -155,7 +158,7 @@ fun ExecutiveHeaderCard(
                                 modifier = Modifier.testTag("header_institution_name")
                             )
                             Text(
-                                text = "${config.wilayaName} • المنشور 29/2018 والمنشور 13/2026",
+                                text = "${config.wilayaName} • المدونة الرسمية (المنشور 29/2018 والمنشور 13/2026)",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Color(0xFFCBD5E1),
                                 maxLines = 1,
@@ -178,7 +181,7 @@ fun ExecutiveHeaderCard(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -198,7 +201,73 @@ fun ExecutiveHeaderCard(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                // Fiscal Year History Switcher Bar (سجل السنوات المالية المحفوظة)
+                if (savedFiscalYears.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = Color(0xFF152C4A).copy(alpha = 0.85f),
+                        border = BorderStroke(1.dp, Color(0xFF334155)),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("fiscal_year_history_bar")
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 10.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = Icons.Default.History,
+                                    contentDescription = "أرشيف السنوات المالية",
+                                    tint = AmberElevated,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = "سجل السنوات المحفوظة:",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = Color(0xFFE2E8F0)
+                                )
+                            }
+
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                savedFiscalYears.forEach { yearItem ->
+                                    val isCurrent = yearItem.fiscalYear == config.fiscalYear
+                                    Surface(
+                                        shape = RoundedCornerShape(50),
+                                        color = if (isCurrent) EmeraldStable else Color(0xFF1E3A5F),
+                                        border = BorderStroke(
+                                            1.dp,
+                                            if (isCurrent) EmeraldStable else Color(0xFF475569)
+                                        ),
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(50))
+                                            .clickable { onSwitchFiscalYear(yearItem.fiscalYear) }
+                                            .testTag("switch_year_chip_${yearItem.fiscalYear}")
+                                    ) {
+                                        Text(
+                                            text = if (isCurrent) "${yearItem.fiscalYear} (الحالية)" else "${yearItem.fiscalYear}",
+                                            style = MaterialTheme.typography.labelMedium.copy(
+                                                fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium
+                                            ),
+                                            color = if (isCurrent) Color(0xFF042F2E) else Color.White,
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -279,6 +348,7 @@ private fun ExecutiveBadge(
 
 @Composable
 fun KpiBentoGrid(
+    fiscalYear: Int,
     totalAuthorized: Double,
     totalCommitted: Double,
     netRemaining: Double,
@@ -301,7 +371,7 @@ fun KpiBentoGrid(
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             KpiStatCard(
-                title = "مجموع الاعتمادات",
+                title = "مجموع الاعتمادات ($fiscalYear)",
                 subtitle = "إجمالي الميزانية المرخصة",
                 amountText = formatDzdWhole(totalAuthorized),
                 accentColor = MaterialTheme.colorScheme.primary,
@@ -311,7 +381,7 @@ fun KpiBentoGrid(
                     .testTag("kpi_total_authorized_card")
             )
             KpiStatCard(
-                title = "مجموع النفقات",
+                title = "مجموع النفقات ($fiscalYear)",
                 subtitle = "النفقات الملتزم بها فعلياً",
                 amountText = formatDzdWhole(totalCommitted),
                 accentColor = AmberElevated,
@@ -322,7 +392,7 @@ fun KpiBentoGrid(
             )
         }
 
-        // Row 2: Net Remaining Balance & Catering 2026 Subsidy Badge
+        // Row 2: Net Remaining Balance & Catering Subsidy Badge
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
@@ -338,7 +408,7 @@ fun KpiBentoGrid(
                     .testTag("kpi_net_remaining_card")
             )
             KpiStatCard(
-                title = "معتمد الإطعام 2026",
+                title = "إعانة الإطعام (ب06/م01)",
                 subtitle = "داخلي ($internalStudents) + ن.داخلي ($semiInternalStudents)",
                 amountText = formatDzdWhole(cateringSubsidy),
                 accentColor = Color(0xFF0EA5E9),
@@ -351,6 +421,7 @@ fun KpiBentoGrid(
 
         // Row 3: Global Animated Consumption Progress Card
         GlobalConsumptionCard(
+            fiscalYear = fiscalYear,
             consumptionRate = globalConsumptionRate,
             healthStatus = globalHealthStatus,
             cateringSubsidy = cateringSubsidy,
@@ -437,6 +508,7 @@ private fun KpiStatCard(
 
 @Composable
 private fun GlobalConsumptionCard(
+    fiscalYear: Int,
     consumptionRate: Double,
     healthStatus: ConsumptionHealth,
     cateringSubsidy: Double,
@@ -474,7 +546,6 @@ private fun GlobalConsumptionCard(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
                 ) {
-                    // Circular Gauge
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier.size(52.dp)
@@ -506,12 +577,12 @@ private fun GlobalConsumptionCard(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "مؤشر استهلاك الميزانية العام",
+                            text = "نسبة استهلاك ميزانية السنة المالية $fiscalYear",
                             style = MaterialTheme.typography.titleSmall,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "مخصص المنشور 13/2026 مدرج آلياً في الإيرادات (111/01) والنفقات (216/01)",
+                            text = "مخصص المنشور 13/2026 مدرج آلياً في الإيرادات (ب01/م01) والنفقات (ب06/م01)",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -591,7 +662,7 @@ fun Chapter2AuditBanner(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "تنبيه رقابي إلزامي - شرط الباب 2 (المنشور 13/2026)",
+                            text = "تنبيه رقابي إلزامي - شرط الباب 02: التكاليف الملحقة (المنشور 13/2026)",
                             style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.onErrorContainer
                         )
@@ -600,7 +671,7 @@ fun Chapter2AuditBanner(
                     Spacer(modifier = Modifier.height(6.dp))
 
                     Text(
-                        text = "اعتماد الباب الثاني (التكاليف الملحقة: ماء، غاز، كهرباء) يمثل حالياً ${formatPercentage(audit.currentPercentage)} فقط من نفقات التسيير العام (${formatDzdWhole(audit.chapter2Allocated)} من أصل ${formatDzdWhole(audit.totalOperationalAllocatedExcludingCatering)}). يشترط المنشور الوزاري 13/2026 ألا يقل عن 35% (الحد الأدنى المطلوب: ${formatDzdWhole(audit.requiredMinimumAmount)}).",
+                        text = "اعتماد الباب 02 (التكاليف الملحقة: الماء، الكهرباء، الغاز، البريد والمواصلات) يمثل حالياً ${formatPercentage(audit.currentPercentage)} فقط من نفقات تسيير المصالح (${formatDzdWhole(audit.chapter2Allocated)} من أصل ${formatDzdWhole(audit.totalOperationalAllocatedExcludingCatering)}). يشترط المنشور الوزاري 13/2026 ألا يقل عن 35% (الحد الأدنى المطلوب: ${formatDzdWhole(audit.requiredMinimumAmount)}).",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onErrorContainer
                     )
@@ -677,7 +748,7 @@ fun Chapter2AuditBanner(
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "مطابقة شرط الباب 2 (المنشور 13/2026): ${formatPercentage(audit.currentPercentage)} من نفقات التسيير (≥ 35%)",
+                            text = "مطابقة شرط الباب 02 (التكاليف الملحقة - المنشور 13/2026): ${formatPercentage(audit.currentPercentage)} من نفقات تسيير المصالح (≥ 35%)",
                             style = MaterialTheme.typography.labelLarge,
                             color = EmeraldStable
                         )

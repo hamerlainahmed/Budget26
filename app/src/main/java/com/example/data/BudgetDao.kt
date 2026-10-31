@@ -11,26 +11,38 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface BudgetDao {
 
-    @Query("SELECT * FROM institution_config WHERE id = 1")
-    fun observeInstitutionConfig(): Flow<InstitutionConfigEntity?>
+    @Query("SELECT * FROM institution_configs ORDER BY fiscalYear DESC")
+    fun observeAllFiscalYears(): Flow<List<InstitutionConfigEntity>>
 
-    @Query("SELECT * FROM institution_config WHERE id = 1")
-    suspend fun getInstitutionConfigOnce(): InstitutionConfigEntity?
+    @Query("SELECT * FROM institution_configs WHERE isActiveYear = 1 LIMIT 1")
+    fun observeActiveConfig(): Flow<InstitutionConfigEntity?>
+
+    @Query("SELECT * FROM institution_configs WHERE fiscalYear = :fiscalYear LIMIT 1")
+    suspend fun getConfigByYear(fiscalYear: Int): InstitutionConfigEntity?
+
+    @Query("UPDATE institution_configs SET isActiveYear = 0")
+    suspend fun clearActiveFlags()
+
+    @Query("UPDATE institution_configs SET isActiveYear = 1 WHERE fiscalYear = :fiscalYear")
+    suspend fun markYearAsActive(fiscalYear: Int)
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertInstitutionConfig(config: InstitutionConfigEntity)
 
-    @Query("SELECT * FROM chapters ORDER BY sectionType ASC, chapterNumber ASC")
+    @Query("SELECT * FROM chapters ORDER BY sectionType ASC, branchNumber ASC, chapterNumber ASC")
     fun observeChapters(): Flow<List<ChapterEntity>>
 
-    @Query("SELECT * FROM articles ORDER BY sectionType ASC, chapterId ASC, articleNumber ASC")
-    fun observeArticles(): Flow<List<ArticleEntity>>
+    @Query("SELECT * FROM articles WHERE fiscalYear = :fiscalYear ORDER BY sectionType ASC, chapterNumber ASC, articleNumber ASC")
+    fun observeArticlesByYear(fiscalYear: Int): Flow<List<ArticleEntity>>
 
-    @Query("SELECT * FROM articles WHERE id = :articleId LIMIT 1")
-    suspend fun getArticleById(articleId: String): ArticleEntity?
+    @Query("SELECT * FROM articles WHERE fiscalYear = :fiscalYear ORDER BY sectionType ASC, chapterNumber ASC, articleNumber ASC")
+    suspend fun getArticlesByYearOnce(fiscalYear: Int): List<ArticleEntity>
 
-    @Query("SELECT * FROM articles WHERE chapterId = :chapterId ORDER BY articleNumber ASC")
-    suspend fun getArticlesByChapter(chapterId: String): List<ArticleEntity>
+    @Query("SELECT * FROM articles WHERE id = :articleRecordId LIMIT 1")
+    suspend fun getArticleById(articleRecordId: String): ArticleEntity?
+
+    @Query("SELECT * FROM articles WHERE fiscalYear = :fiscalYear AND chapterId = :chapterId ORDER BY articleNumber ASC")
+    suspend fun getArticlesByYearAndChapter(fiscalYear: Int, chapterId: String): List<ArticleEntity>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertChapters(chapters: List<ChapterEntity>)
@@ -41,14 +53,17 @@ interface BudgetDao {
     @Update
     suspend fun updateArticle(article: ArticleEntity)
 
-    @Query("UPDATE articles SET allocatedAmount = :newAllocated WHERE id = :articleId")
-    suspend fun updateArticleAllocation(articleId: String, newAllocated: Double)
+    @Query("UPDATE articles SET allocatedAmount = :newAllocated WHERE id = :articleRecordId")
+    suspend fun updateArticleAllocation(articleRecordId: String, newAllocated: Double)
 
-    @Query("UPDATE articles SET spentAmount = :newSpent WHERE id = :articleId")
-    suspend fun updateArticleSpent(articleId: String, newSpent: Double)
+    @Query("UPDATE articles SET spentAmount = :newSpent WHERE id = :articleRecordId")
+    suspend fun updateArticleSpent(articleRecordId: String, newSpent: Double)
 
-    @Query("SELECT * FROM transactions ORDER BY timestamp DESC, id DESC")
-    fun observeTransactions(): Flow<List<TransactionEntity>>
+    @Query("UPDATE articles SET spentAmount = 0.0 WHERE fiscalYear = :fiscalYear")
+    suspend fun resetAllSpentAmountsForYear(fiscalYear: Int)
+
+    @Query("SELECT * FROM transactions WHERE fiscalYear = :fiscalYear ORDER BY timestamp DESC, id DESC")
+    fun observeTransactionsByYear(fiscalYear: Int): Flow<List<TransactionEntity>>
 
     @Query("SELECT * FROM transactions WHERE id = :transactionId LIMIT 1")
     suspend fun getTransactionById(transactionId: Long): TransactionEntity?
@@ -59,14 +74,30 @@ interface BudgetDao {
     @Query("DELETE FROM transactions WHERE id = :transactionId")
     suspend fun deleteTransactionById(transactionId: Long)
 
+    @Query("DELETE FROM transactions WHERE fiscalYear = :fiscalYear")
+    suspend fun deleteAllTransactionsForYear(fiscalYear: Int)
+
     @Query("SELECT COUNT(*) FROM chapters")
     suspend fun getChaptersCount(): Int
 
+    @Transaction
+    suspend fun switchActiveFiscalYear(fiscalYear: Int) {
+        val existing = getConfigByYear(fiscalYear) ?: return
+        clearActiveFlags()
+        upsertInstitutionConfig(existing.copy(isActiveYear = true, updatedAt = System.currentTimeMillis()))
+    }
+
     /**
-     * Automated Catering & Scholarship Budget Engine (Circular 13/2026):
-     * Updates the InstitutionConfig AND automatically injects the calculated catering subsidy into:
-     * 1) Revenue Title 1 -> Chapter 1 -> Article 1 (R-1-1: إعانة التغذية والمنح)
-     * 2) Expenditure Title 2 -> Branch 1 -> Chapter 6 -> Article 1 (E-6-1: إطعام التلاميذ الممنوحين)
+     * Opens a new Fiscal Year (or updates/resets an existing one) while preserving all other
+     * fiscal years and their expenses in the database history.
+     *
+     * - If the target `fiscalYear` has no articles yet, creates a fresh set of nomenclature articles
+     *   for `fiscalYear` with `spentAmount = 0.0` (zero expenses) and empty transactions ledger.
+     * - If `clearExpensesForTargetYear` is true, clears any previous expenses/transactions for `fiscalYear`
+     *   so the opened year starts clean.
+     * - Automatically injects the calculated Circular 13/2026 Catering Subsidy into:
+     *   1) Revenue Title 1 -> Chapter 1 -> Article 1 (REV_01_01: إعانة التسيير للتغذية)
+     *   2) Expenditure Title 2 -> Branch 1 -> Chapter 6 -> Article 1 (EXP_06_01: إطعام التلاميذ الداخليين ونصف الداخليين)
      */
     @Transaction
     suspend fun applyCateringBudgetTransaction(
@@ -75,46 +106,63 @@ interface BudgetDao {
         regime: String,
         fiscalYear: Int,
         internalStudents: Int,
-        semiInternalStudents: Int
+        semiInternalStudents: Int,
+        clearExpensesForTargetYear: Boolean = true,
+        templateArticlesProvider: (Int, Double) -> List<ArticleEntity>
     ): Double {
         val calculatedSubsidy = Circular13Constants.calculateCateringSubsidy(
             internalCount = internalStudents,
             semiInternalCount = semiInternalStudents
         )
 
+        clearActiveFlags()
+
         val config = InstitutionConfigEntity(
-            id = 1,
-            institutionName = institutionName.trim().ifEmpty { "ثانوية الشهيد محمد بوضياف" },
+            fiscalYear = fiscalYear,
+            institutionName = institutionName.trim().ifEmpty { "ثانوية الشهيد العربي بن مهيدي" },
             wilayaName = wilayaName.trim().ifEmpty { "مديرية التربية لولاية الجزائر" },
             regime = regime,
-            fiscalYear = fiscalYear,
             internalScholarshipCount = internalStudents,
             semiInternalScholarshipCount = semiInternalStudents,
+            isActiveYear = true,
             updatedAt = System.currentTimeMillis()
         )
         upsertInstitutionConfig(config)
 
-        // Inject into Revenue Chapter 1 -> Item 1 (R-1-1)
-        updateArticleAllocation(
-            articleId = Circular13Constants.REV_CATERING_ARTICLE_ID,
-            newAllocated = calculatedSubsidy
-        )
-
-        // Inject into Expenditure Chapter 6 -> Item 1 (E-6-1)
-        updateArticleAllocation(
-            articleId = Circular13Constants.EXP_CATERING_ARTICLE_ID,
-            newAllocated = calculatedSubsidy
-        )
+        val existingArticlesForYear = getArticlesByYearOnce(fiscalYear)
+        if (existingArticlesForYear.isEmpty()) {
+            // Brand new fiscal year: create fresh nomenclature articles with 0 spentAmount
+            val freshArticles = templateArticlesProvider(fiscalYear, calculatedSubsidy)
+            insertArticles(freshArticles)
+            deleteAllTransactionsForYear(fiscalYear)
+        } else {
+            if (clearExpensesForTargetYear) {
+                deleteAllTransactionsForYear(fiscalYear)
+                resetAllSpentAmountsForYear(fiscalYear)
+            }
+            // Inject catering subsidy into Revenue 01/01 and Expenditure 06/01 for this fiscal year
+            val revRecordId = Circular13Constants.articleRecordId(
+                fiscalYear = fiscalYear,
+                baseArticleId = Circular13Constants.REV_CATERING_BASE_ID
+            )
+            val expRecordId = Circular13Constants.articleRecordId(
+                fiscalYear = fiscalYear,
+                baseArticleId = Circular13Constants.EXP_CATERING_BASE_ID
+            )
+            updateArticleAllocation(articleRecordId = revRecordId, newAllocated = calculatedSubsidy)
+            updateArticleSpent(articleRecordId = revRecordId, newSpent = calculatedSubsidy)
+            updateArticleAllocation(articleRecordId = expRecordId, newAllocated = calculatedSubsidy)
+        }
 
         return calculatedSubsidy
     }
 
     /**
-     * Commits an expense and updates the corresponding Article's spentAmount atomically.
+     * Commits an expense to a specific article in its fiscal year and updates spentAmount atomically.
      */
     @Transaction
     suspend fun commitExpenseTransaction(
-        articleId: String,
+        articleRecordId: String,
         chapterName: String,
         voucherNumber: String,
         supplierName: String,
@@ -122,19 +170,20 @@ interface BudgetDao {
         amount: Double,
         timestamp: Long = System.currentTimeMillis()
     ): Long {
-        val article = getArticleById(articleId)
+        val article = getArticleById(articleRecordId)
             ?: throw IllegalArgumentException("المادة المحاسبية غير موجودة")
 
         val updatedSpent = article.spentAmount + amount
-        updateArticleSpent(articleId = article.id, newSpent = updatedSpent)
+        updateArticleSpent(articleRecordId = article.id, newSpent = updatedSpent)
 
         val tx = TransactionEntity(
+            fiscalYear = article.fiscalYear,
             articleId = article.id,
             chapterId = article.chapterId,
             chapterName = chapterName,
             articleCode = article.officialCode,
             articleName = article.name,
-            voucherNumber = voucherNumber.trim().ifEmpty { "MD-2026/${(100..999).random()}" },
+            voucherNumber = voucherNumber.trim().ifEmpty { "MD-${article.fiscalYear}/${(100..999).random()}" },
             supplierName = supplierName.trim().ifEmpty { "ممون معتمد" },
             description = description.trim(),
             amount = amount,
@@ -152,7 +201,7 @@ interface BudgetDao {
         val article = getArticleById(tx.articleId)
         if (article != null) {
             val refundedSpent = (article.spentAmount - tx.amount).coerceAtLeast(0.0)
-            updateArticleSpent(articleId = article.id, newSpent = refundedSpent)
+            updateArticleSpent(articleRecordId = article.id, newSpent = refundedSpent)
         }
         deleteTransactionById(transactionId)
     }

@@ -40,13 +40,15 @@ data class PendingExpenseOverBudgetWarning(
 data class BudgetUiState(
     val isLoading: Boolean = true,
     val config: InstitutionConfigEntity = InstitutionConfigEntity(
+        fiscalYear = 2026,
         institutionName = "ثانوية الشهيد العربي بن مهيدي - النموذجية",
         wilayaName = "مديرية التربية لولاية الجزائر وسط",
         regime = "داخلي ونصف داخلي",
-        fiscalYear = 2026,
         internalScholarshipCount = 42,
-        semiInternalScholarshipCount = 310
+        semiInternalScholarshipCount = 310,
+        isActiveYear = true
     ),
+    val savedFiscalYears: List<InstitutionConfigEntity> = emptyList(),
     val revenueChapters: List<ChapterWithArticles> = emptyList(),
     val expenditureChapters: List<ChapterWithArticles> = emptyList(),
     val transactions: List<TransactionEntity> = emptyList(),
@@ -82,19 +84,23 @@ class BudgetViewModel(
     val overBudgetWarning: StateFlow<PendingExpenseOverBudgetWarning?> = _overBudgetWarning
 
     val uiState: StateFlow<BudgetUiState> = combine(
-        repository.institutionConfigFlow,
+        combine(
+            repository.activeConfigFlow,
+            repository.allFiscalYearsFlow
+        ) { active, allYears -> active to allYears },
         repository.chaptersWithArticlesFlow,
-        repository.transactionsFlow,
+        repository.activeYearTransactionsFlow,
         selectedTabFlow,
         combine(searchQueryFlow, statusBannerFlow) { q, msg -> q to msg }
-    ) { configEntity, allChapters, transactions, selectedTab, (query, bannerMsg) ->
-        val config = configEntity ?: InstitutionConfigEntity(
+    ) { (configEntity, allYears), allChapters, transactions, selectedTab, (query, bannerMsg) ->
+        val config = configEntity ?: allYears.firstOrNull() ?: InstitutionConfigEntity(
+            fiscalYear = 2026,
             institutionName = "ثانوية الشهيد العربي بن مهيدي - النموذجية",
             wilayaName = "مديرية التربية لولاية الجزائر وسط",
             regime = "داخلي ونصف داخلي",
-            fiscalYear = 2026,
             internalScholarshipCount = 42,
-            semiInternalScholarshipCount = 310
+            semiInternalScholarshipCount = 310,
+            isActiveYear = true
         )
 
         val revenueChapters = allChapters.filter {
@@ -135,6 +141,7 @@ class BudgetViewModel(
         BudgetUiState(
             isLoading = false,
             config = config,
+            savedFiscalYears = allYears,
             revenueChapters = revenueChapters,
             expenditureChapters = expenditureChapters,
             transactions = filteredTransactions,
@@ -157,16 +164,17 @@ class BudgetViewModel(
     )
 
     /**
-     * Evaluates Circular 13/2026 condition for Chapter 2 (Utilities & Annexes: Water, Gas, Electricity):
-     * Must represent at least 35% of total operational charges (excluding Chapter 6 Catering).
+     * Evaluates Circular 13/2026 condition for Chapter 2 (الباب 02: التكاليف الملحقة):
+     * Must represent at least 35% of Branch 1 operational charges (excluding Chapter 6 Catering).
      */
     fun evaluateChapter2Audit(expenditureChapters: List<ChapterWithArticles>): Chapter2AuditCheck {
         val chapter2Allocated = expenditureChapters
-            .firstOrNull { it.chapter.id == Circular13Constants.EXP_CHAPTER_2_ID }
+            .firstOrNull { it.chapter.id == Circular13Constants.EXP_CHAPTER_2_BASE_ID }
             ?.totalAllocated ?: 0.0
 
+        // Operational chapters in Branch 1 (نفقات تسيير المصالح) excluding Chapter 6 (نفقات الإطعام)
         val operationalChaptersWithoutCatering = expenditureChapters.filter {
-            it.chapter.id != Circular13Constants.EXP_CHAPTER_6_ID
+            it.chapter.branchNumber == 1 && it.chapter.id != Circular13Constants.EXP_CHAPTER_6_BASE_ID
         }
         val totalOperational = operationalChaptersWithoutCatering.sumOf { it.totalAllocated }
         val otherOperational = (totalOperational - chapter2Allocated).coerceAtLeast(0.0)
@@ -177,8 +185,6 @@ class BudgetViewModel(
             (chapter2Allocated / totalOperational) * 100.0
         }
 
-        // If we increase Chapter 2 while keeping other operational chapters constant,
-        // C2_new / (C2_new + otherOperational) >= 0.35  =>  C2_new >= (0.35 / 0.65) * otherOperational
         val requiredC2ToReach35Percent = (0.35 / 0.65) * otherOperational
         val currentBenchmark35 = totalOperational * Circular13Constants.CHAPTER_2_MIN_OPERATIONAL_RATIO
         val deficit = max(0.0, requiredC2ToReach35Percent - chapter2Allocated)
@@ -208,10 +214,22 @@ class BudgetViewModel(
     }
 
     /**
-     * Automated Catering & Scholarship Budget Engine (Circular 13/2026 - Chapter 6):
-     * Saves fiscal year configuration and automatically injects the calculated subsidy into:
-     * - Revenue Title 1 -> Chapter 1 -> Article 1 (R-1-1)
-     * - Expenditure Title 2 -> Branch 1 -> Chapter 6 -> Article 1 (E-6-1)
+     * Switches between saved fiscal years (e.g., 2025, 2026, 2027), restoring all saved allocations
+     * and transaction history for that year.
+     */
+    fun switchFiscalYear(fiscalYear: Int) {
+        viewModelScope.launch {
+            repository.switchFiscalYear(fiscalYear)
+            statusBannerFlow.value =
+                "تم استرجاع وعرض سجل السنة المالية $fiscalYear بكامل اعتماداتها وحوالاتها المحفوظة"
+        }
+    }
+
+    /**
+     * Opens a new fiscal year (or updates/resets an existing one):
+     * - Preserves previous fiscal years and their expenses in history.
+     * - Clears/starts with 0 expenses when opening a new fiscal year (or when clearExpenses is checked).
+     * - Automatically injects Circular 13/2026 catering subsidy into Revenue ب01/م01 and Expenditure ب06/م01.
      */
     fun applyCateringBudget(
         institutionName: String,
@@ -219,7 +237,8 @@ class BudgetViewModel(
         regime: String,
         fiscalYear: Int,
         internalCount: Int,
-        semiInternalCount: Int
+        semiInternalCount: Int,
+        clearExpensesForTargetYear: Boolean = true
     ) {
         viewModelScope.launch {
             val totalCatering = repository.applyCateringBudget(
@@ -228,20 +247,22 @@ class BudgetViewModel(
                 regime = regime,
                 fiscalYear = fiscalYear,
                 internalStudents = internalCount.coerceAtLeast(0),
-                semiInternalStudents = semiInternalCount.coerceAtLeast(0)
+                semiInternalStudents = semiInternalCount.coerceAtLeast(0),
+                clearExpensesForTargetYear = clearExpensesForTargetYear
             )
+            val resetNote = if (clearExpensesForTargetYear) " (مع تصفير النفقات للسنة الجديدة وحفظ السنوات السابقة في الأرشيف)" else ""
             statusBannerFlow.value =
-                "تم فتح السنة المالية $fiscalYear وتحديث اعتماد الإطعام آلياً في الإيرادات (111/01) والنفقات (216/01) بمبلغ ${formatDzdCurrency(totalCatering)}"
+                "تم فتح السنة المالية $fiscalYear$resetNote وضخ اعتماد الإطعام آلياً في الإيرادات (ب01/م01) والنفقات (ب06/م01) بمبلغ ${formatDzdCurrency(totalCatering)}"
         }
     }
 
     /**
      * Budget Credit Authorization (حجز الاعتمادات):
-     * Updates the authorized credit for an individual article.
+     * Updates the authorized credit for an individual article in the active fiscal year.
      */
-    fun updateArticleAllocation(articleId: String, articleName: String, newAmount: Double) {
+    fun updateArticleAllocation(articleRecordId: String, articleName: String, newAmount: Double) {
         viewModelScope.launch {
-            repository.updateArticleAllocation(articleId = articleId, newAmount = newAmount)
+            repository.updateArticleAllocation(articleRecordId = articleRecordId, newAmount = newAmount)
             statusBannerFlow.value =
                 "تم تحديث الاعتماد المسموح به للمادة ($articleName) إلى ${formatDzdCurrency(newAmount)}"
         }
@@ -249,8 +270,6 @@ class BudgetViewModel(
 
     /**
      * Registers an expense with an automatic Over-Budget check (> 100%).
-     * If the expense exceeds the article's remaining credit and forceCommit is false,
-     * triggers an over-budget confirmation alert before committing.
      */
     fun addExpense(
         article: ArticleEntity,
@@ -289,7 +308,7 @@ class BudgetViewModel(
         _overBudgetWarning.value = null
         viewModelScope.launch {
             repository.addExpense(
-                articleId = article.id,
+                articleRecordId = article.id,
                 chapterName = chapterName,
                 voucherNumber = voucherNumber,
                 supplierName = supplierName,
@@ -297,7 +316,7 @@ class BudgetViewModel(
                 amount = amount
             )
             statusBannerFlow.value =
-                "تم تسجيل النفقة (${formatDzdCurrency(amount)}) وخصمها من المادة ${article.officialCode}"
+                "تم تسجيل النفقة (${formatDzdCurrency(amount)}) في السنة المالية ${article.fiscalYear} وخصمها من المادة ${article.officialCode}"
             onCommitted()
         }
     }
@@ -336,12 +355,16 @@ class BudgetViewModel(
      * Automatically adjusts Chapter 2 utilities allocation to satisfy Circular 13/2026 (>= 35%).
      */
     fun autoFixChapter2Compliance() {
-        val currentAudit = uiState.value.chapter2Audit
+        val state = uiState.value
+        val currentAudit = state.chapter2Audit
         if (currentAudit.isCompliant || currentAudit.deficitAmount <= 0.0) return
         viewModelScope.launch {
-            repository.autoFixChapter2Compliance(currentAudit.deficitAmount)
+            repository.autoFixChapter2Compliance(
+                fiscalYear = state.config.fiscalYear,
+                deficitAmount = currentAudit.deficitAmount
+            )
             statusBannerFlow.value =
-                "تم تعديل اعتماد الباب الثاني (التكاليف الملحقة) لاستيفاء النسبة القانونية (≥ 35%) وفق المنشور 13/2026"
+                "تم تعديل اعتماد الباب 02 (التكاليف الملحقة) للسنة المالية ${state.config.fiscalYear} لاستيفاء النسبة القانونية (≥ 35%)"
         }
     }
 
