@@ -88,7 +88,8 @@ fun FiscalYearOnboardingModal(
         fiscalYear: Int,
         internalCount: Int,
         semiInternalCount: Int,
-        clearExpensesForTargetYear: Boolean
+        clearExpensesForTargetYear: Boolean,
+        startWithZeroCustomAllocations: Boolean
     ) -> Unit
 ) {
     BackHandler(onBack = onDismiss)
@@ -110,6 +111,7 @@ fun FiscalYearOnboardingModal(
     }
     // By default, opening a fiscal year clears expenses for the target year while keeping previous years in history
     var clearExpensesForTargetYear by rememberSaveable { mutableStateOf(true) }
+    var startWithZeroCustomAllocations by rememberSaveable { mutableStateOf(false) }
 
     val regimes = listOf("داخلي ونصف داخلي", "نصف داخلي", "داخلي", "خارجي")
 
@@ -345,6 +347,42 @@ fun FiscalYearOnboardingModal(
                     }
                 }
 
+                // Option to start with zeroed custom revenues & expenditure allocations so user enters them manually
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = Color(0xFF0EA5E9).copy(alpha = 0.10f),
+                    border = BorderStroke(1.dp, Color(0xFF0EA5E9).copy(alpha = 0.40f)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { startWithZeroCustomAllocations = !startWithZeroCustomAllocations }
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 10.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = startWithZeroCustomAllocations,
+                            onCheckedChange = { startWithZeroCustomAllocations = it },
+                            modifier = Modifier.testTag("checkbox_zero_custom_allocations")
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "تصفير الإيرادات واعتمادات النفقات لتخصيصها يدوياً (ما عدا إعانة التغذية)",
+                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "يتيح لك إدخال مبالغ الإيرادات واعتمادات أبواب النفقات الخاصة بمؤسستك من الصفر.",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+
                 Text(
                     text = "نظام المؤسسة التربوية:",
                     style = MaterialTheme.typography.labelLarge,
@@ -452,7 +490,7 @@ fun FiscalYearOnboardingModal(
                         )
 
                         Text(
-                            text = "سيتم ضخ هذا المبلغ آلياً في مدونة السنة المالية $enteredYear:\n1) الإيرادات: العنوان 1 -> الباب 01 -> المادة 01 (إعانة التسيير للتغذية ب01/م01)\n2) النفقات: العنوان 2 -> الفرع 1 -> الباب 06 -> المادة 01 (إطعام التلاميذ الداخليين ونصف الداخليين ب06/م01)",
+                            text = "سيتم ضخ هذا المبلغ آلياً في مدونة السنة المالية $enteredYear:\n1) الإيرادات: العنوان 1 -> الباب 01 -> المادة 01 (إعانة التغذية ب01/م01)\n2) النفقات: العنوان 2 -> الفرع 1 -> الباب 06 -> المادة 01 (إطعام التلاميذ الداخليين ونصف الداخليين ب06/م01)",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -480,7 +518,8 @@ fun FiscalYearOnboardingModal(
                                 enteredYear,
                                 internalCount,
                                 semiInternalCount,
-                                clearExpensesForTargetYear
+                                clearExpensesForTargetYear,
+                                startWithZeroCustomAllocations
                             )
                             onDismiss()
                         },

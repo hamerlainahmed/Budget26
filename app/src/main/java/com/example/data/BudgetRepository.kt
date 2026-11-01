@@ -54,7 +54,8 @@ class BudgetRepository(private val dao: BudgetDao) {
         fiscalYear: Int,
         internalStudents: Int,
         semiInternalStudents: Int,
-        clearExpensesForTargetYear: Boolean
+        clearExpensesForTargetYear: Boolean,
+        startWithZeroCustomAllocations: Boolean = false
     ): Double {
         return dao.applyCateringBudgetTransaction(
             institutionName = institutionName,
@@ -64,6 +65,7 @@ class BudgetRepository(private val dao: BudgetDao) {
             internalStudents = internalStudents,
             semiInternalStudents = semiInternalStudents,
             clearExpensesForTargetYear = clearExpensesForTargetYear,
+            startWithZeroCustomAllocations = startWithZeroCustomAllocations,
             templateArticlesProvider = { year, subsidy ->
                 BudgetDatabase.buildCleanArticlesForFiscalYear(year, subsidy)
             }
@@ -75,6 +77,26 @@ class BudgetRepository(private val dao: BudgetDao) {
             articleRecordId = articleRecordId,
             newAllocated = newAmount.coerceAtLeast(0.0)
         )
+    }
+
+    suspend fun updateRevenueArticleAmounts(
+        articleRecordId: String,
+        newAllocated: Double,
+        newCollected: Double
+    ) {
+        dao.updateRevenueArticleAmounts(
+            articleRecordId = articleRecordId,
+            newAllocated = newAllocated.coerceAtLeast(0.0),
+            newCollected = newCollected.coerceAtLeast(0.0)
+        )
+    }
+
+    suspend fun zeroOutCustomRevenues(fiscalYear: Int) {
+        dao.zeroOutCustomRevenuesForYear(fiscalYear)
+    }
+
+    suspend fun zeroOutCustomExpenditures(fiscalYear: Int) {
+        dao.zeroOutCustomExpendituresForYear(fiscalYear)
     }
 
     suspend fun addExpense(

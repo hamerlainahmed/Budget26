@@ -21,9 +21,9 @@ import kotlinx.coroutines.launch
 import kotlin.math.max
 
 enum class BudgetTab(val index: Int, val titleAr: String) {
-    CHAPTERS_DEEP_DIVE(0, "تفاصيل الأبواب"),
-    ALLOCATIONS_MATRIX(1, "حجز الاعتمادات"),
-    TRANSACTIONS_LEDGER(2, "سجل الفواتير")
+    CHAPTERS_DEEP_DIVE(0, "الأبواب والمواد"),
+    ALLOCATIONS_MATRIX(1, "تخصيص الميزانية"),
+    TRANSACTIONS_LEDGER(2, "سجل الحوالات")
 }
 
 data class PendingExpenseOverBudgetWarning(
@@ -58,6 +58,7 @@ data class BudgetUiState(
     val globalConsumptionRate: Double = 0.0,
     val globalHealthStatus: ConsumptionHealth = ConsumptionHealth.STABLE,
     val totalRevenuesAllocated: Double = 0.0,
+    val totalRevenuesCollected: Double = 0.0,
     val cateringSubsidyAmount: Double = 0.0,
     val chapter2Audit: Chapter2AuditCheck = Chapter2AuditCheck(
         chapter2Allocated = 0.0,
@@ -122,6 +123,7 @@ class BudgetViewModel(
         }
 
         val totalRevenues = revenueChapters.sumOf { it.totalAllocated }
+        val totalRevenuesCollected = revenueChapters.sumOf { it.totalSpent }
         val chapter2Audit = evaluateChapter2Audit(expenditureChapters)
 
         val filteredTransactions = if (query.isBlank()) {
@@ -151,6 +153,7 @@ class BudgetViewModel(
             globalConsumptionRate = consumptionRate,
             globalHealthStatus = globalHealth,
             totalRevenuesAllocated = totalRevenues,
+            totalRevenuesCollected = totalRevenuesCollected,
             cateringSubsidyAmount = config.totalCateringSubsidy,
             chapter2Audit = chapter2Audit,
             selectedTab = selectedTab,
@@ -172,7 +175,6 @@ class BudgetViewModel(
             .firstOrNull { it.chapter.id == Circular13Constants.EXP_CHAPTER_2_BASE_ID }
             ?.totalAllocated ?: 0.0
 
-        // Operational chapters in Branch 1 (نفقات تسيير المصالح) excluding Chapter 6 (نفقات الإطعام)
         val operationalChaptersWithoutCatering = expenditureChapters.filter {
             it.chapter.branchNumber == 1 && it.chapter.id != Circular13Constants.EXP_CHAPTER_6_BASE_ID
         }
@@ -221,7 +223,7 @@ class BudgetViewModel(
         viewModelScope.launch {
             repository.switchFiscalYear(fiscalYear)
             statusBannerFlow.value =
-                "تم استرجاع وعرض سجل السنة المالية $fiscalYear بكامل اعتماداتها وحوالاتها المحفوظة"
+                "تم استرجاع وعرض سجل السنة المالية $fiscalYear بكامل إيراداتها واعتماداتها وحوالاتها المحفوظة"
         }
     }
 
@@ -229,6 +231,7 @@ class BudgetViewModel(
      * Opens a new fiscal year (or updates/resets an existing one):
      * - Preserves previous fiscal years and their expenses in history.
      * - Clears/starts with 0 expenses when opening a new fiscal year (or when clearExpenses is checked).
+     * - Optionally zeroes out non-catering revenue & expenditure allocations so the user can enter them from scratch.
      * - Automatically injects Circular 13/2026 catering subsidy into Revenue ب01/م01 and Expenditure ب06/م01.
      */
     fun applyCateringBudget(
@@ -238,7 +241,8 @@ class BudgetViewModel(
         fiscalYear: Int,
         internalCount: Int,
         semiInternalCount: Int,
-        clearExpensesForTargetYear: Boolean = true
+        clearExpensesForTargetYear: Boolean = true,
+        startWithZeroCustomAllocations: Boolean = false
     ) {
         viewModelScope.launch {
             val totalCatering = repository.applyCateringBudget(
@@ -248,23 +252,72 @@ class BudgetViewModel(
                 fiscalYear = fiscalYear,
                 internalStudents = internalCount.coerceAtLeast(0),
                 semiInternalStudents = semiInternalCount.coerceAtLeast(0),
-                clearExpensesForTargetYear = clearExpensesForTargetYear
+                clearExpensesForTargetYear = clearExpensesForTargetYear,
+                startWithZeroCustomAllocations = startWithZeroCustomAllocations
             )
-            val resetNote = if (clearExpensesForTargetYear) " (مع تصفير النفقات للسنة الجديدة وحفظ السنوات السابقة في الأرشيف)" else ""
+            val resetNote = when {
+                startWithZeroCustomAllocations -> " (مع تصفير الإيرادات والاعتمادات غير الآلية لتخصيصها يدوياً)"
+                clearExpensesForTargetYear -> " (مع تصفير النفقات للسنة الجديدة وحفظ السنوات السابقة في الأرشيف)"
+                else -> ""
+            }
             statusBannerFlow.value =
                 "تم فتح السنة المالية $fiscalYear$resetNote وضخ اعتماد الإطعام آلياً في الإيرادات (ب01/م01) والنفقات (ب06/م01) بمبلغ ${formatDzdCurrency(totalCatering)}"
         }
     }
 
     /**
-     * Budget Credit Authorization (حجز الاعتمادات):
-     * Updates the authorized credit for an individual article in the active fiscal year.
+     * Customizes the authorized expenditure credit for an individual article in the active fiscal year.
      */
     fun updateArticleAllocation(articleRecordId: String, articleName: String, newAmount: Double) {
         viewModelScope.launch {
             repository.updateArticleAllocation(articleRecordId = articleRecordId, newAmount = newAmount)
             statusBannerFlow.value =
-                "تم تحديث الاعتماد المسموح به للمادة ($articleName) إلى ${formatDzdCurrency(newAmount)}"
+                "تم تخصيص الاعتماد المفتوح للمادة ($articleName) بمبلغ ${formatDzdCurrency(newAmount)}"
+        }
+    }
+
+    /**
+     * Customizes both the estimated/open revenue (الإيراد المقدر/المفتوح) and collected revenue (الإيراد المحصّل)
+     * for a Revenue article in Title 1.
+     */
+    fun updateRevenueArticleAmounts(
+        articleRecordId: String,
+        articleName: String,
+        newAllocated: Double,
+        newCollected: Double
+    ) {
+        viewModelScope.launch {
+            repository.updateRevenueArticleAmounts(
+                articleRecordId = articleRecordId,
+                newAllocated = newAllocated,
+                newCollected = newCollected
+            )
+            statusBannerFlow.value =
+                "تم تخصيص إيراد المادة ($articleName): المقدر ${formatDzdCurrency(newAllocated)} • المحصّل ${formatDzdCurrency(newCollected)}"
+        }
+    }
+
+    /**
+     * Zeroes out all non-catering revenue articles for the active fiscal year so the user can enter custom revenues from scratch.
+     */
+    fun zeroOutCustomRevenues() {
+        val currentYear = uiState.value.config.fiscalYear
+        viewModelScope.launch {
+            repository.zeroOutCustomRevenues(currentYear)
+            statusBannerFlow.value =
+                "تم تصفير الإيرادات غير الآلية للسنة المالية $currentYear (مع الإبقاء على إعانة التغذية ب01/م01) لتتمكن من تخصيصها يدوياً"
+        }
+    }
+
+    /**
+     * Zeroes out all non-catering expenditure allocations for the active fiscal year so the user can distribute credits from scratch.
+     */
+    fun zeroOutCustomExpenditures() {
+        val currentYear = uiState.value.config.fiscalYear
+        viewModelScope.launch {
+            repository.zeroOutCustomExpenditures(currentYear)
+            statusBannerFlow.value =
+                "تم تصفير اعتمادات النفقات غير الآلية للسنة المالية $currentYear (مع الإبقاء على إطعام الممنوحين ب06/م01) لتتمكن من تخصيصها يدوياً"
         }
     }
 

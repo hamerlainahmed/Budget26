@@ -56,11 +56,24 @@ interface BudgetDao {
     @Query("UPDATE articles SET allocatedAmount = :newAllocated WHERE id = :articleRecordId")
     suspend fun updateArticleAllocation(articleRecordId: String, newAllocated: Double)
 
+    @Query("UPDATE articles SET allocatedAmount = :newAllocated, spentAmount = :newCollected WHERE id = :articleRecordId")
+    suspend fun updateRevenueArticleAmounts(
+        articleRecordId: String,
+        newAllocated: Double,
+        newCollected: Double
+    )
+
     @Query("UPDATE articles SET spentAmount = :newSpent WHERE id = :articleRecordId")
     suspend fun updateArticleSpent(articleRecordId: String, newSpent: Double)
 
     @Query("UPDATE articles SET spentAmount = 0.0 WHERE fiscalYear = :fiscalYear")
     suspend fun resetAllSpentAmountsForYear(fiscalYear: Int)
+
+    @Query("UPDATE articles SET allocatedAmount = 0.0, spentAmount = 0.0 WHERE fiscalYear = :fiscalYear AND sectionType = 'REVENUE' AND isAutoCatering = 0")
+    suspend fun zeroOutCustomRevenuesForYear(fiscalYear: Int)
+
+    @Query("UPDATE articles SET allocatedAmount = 0.0 WHERE fiscalYear = :fiscalYear AND sectionType = 'EXPENDITURE' AND isAutoCatering = 0")
+    suspend fun zeroOutCustomExpendituresForYear(fiscalYear: Int)
 
     @Query("SELECT * FROM transactions WHERE fiscalYear = :fiscalYear ORDER BY timestamp DESC, id DESC")
     fun observeTransactionsByYear(fiscalYear: Int): Flow<List<TransactionEntity>>
@@ -95,6 +108,8 @@ interface BudgetDao {
      *   for `fiscalYear` with `spentAmount = 0.0` (zero expenses) and empty transactions ledger.
      * - If `clearExpensesForTargetYear` is true, clears any previous expenses/transactions for `fiscalYear`
      *   so the opened year starts clean.
+     * - If `startWithZeroCustomAllocations` is true, sets all non-catering revenue and expenditure
+     *   allocations to `0.00 DZD` so the user can customize every chapter/article from scratch.
      * - Automatically injects the calculated Circular 13/2026 Catering Subsidy into:
      *   1) Revenue Title 1 -> Chapter 1 -> Article 1 (REV_01_01: إعانة التسيير للتغذية)
      *   2) Expenditure Title 2 -> Branch 1 -> Chapter 6 -> Article 1 (EXP_06_01: إطعام التلاميذ الداخليين ونصف الداخليين)
@@ -108,6 +123,7 @@ interface BudgetDao {
         internalStudents: Int,
         semiInternalStudents: Int,
         clearExpensesForTargetYear: Boolean = true,
+        startWithZeroCustomAllocations: Boolean = false,
         templateArticlesProvider: (Int, Double) -> List<ArticleEntity>
     ): Double {
         val calculatedSubsidy = Circular13Constants.calculateCateringSubsidy(
@@ -152,6 +168,11 @@ interface BudgetDao {
             updateArticleAllocation(articleRecordId = revRecordId, newAllocated = calculatedSubsidy)
             updateArticleSpent(articleRecordId = revRecordId, newSpent = calculatedSubsidy)
             updateArticleAllocation(articleRecordId = expRecordId, newAllocated = calculatedSubsidy)
+        }
+
+        if (startWithZeroCustomAllocations) {
+            zeroOutCustomRevenuesForYear(fiscalYear)
+            zeroOutCustomExpendituresForYear(fiscalYear)
         }
 
         return calculatedSubsidy

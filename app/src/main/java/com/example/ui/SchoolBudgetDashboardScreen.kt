@@ -237,12 +237,31 @@ fun SchoolBudgetDashboardScreen(
                                 onRegisterExpenseForArticle = { article, _ ->
                                     preselectedExpenseArticle = article
                                     showExpenseModal = true
+                                },
+                                onUpdateExpenditureAllocation = { articleRecordId, articleName, newAmount ->
+                                    viewModel.updateArticleAllocation(
+                                        articleRecordId = articleRecordId,
+                                        articleName = articleName,
+                                        newAmount = newAmount
+                                    )
+                                },
+                                onUpdateRevenueAmounts = { articleRecordId, articleName, newAllocated, newCollected ->
+                                    viewModel.updateRevenueArticleAmounts(
+                                        articleRecordId = articleRecordId,
+                                        articleName = articleName,
+                                        newAllocated = newAllocated,
+                                        newCollected = newCollected
+                                    )
+                                },
+                                onGoToCustomizeTab = {
+                                    viewModel.selectTab(BudgetTab.ALLOCATIONS_MATRIX)
                                 }
                             )
                         }
 
                         BudgetTab.ALLOCATIONS_MATRIX -> {
                             AllocationsMatrixSection(
+                                fiscalYear = uiState.config.fiscalYear,
                                 expenditureChapters = uiState.expenditureChapters,
                                 revenueChapters = uiState.revenueChapters,
                                 onUpdateAllocation = { articleRecordId, articleName, newAmount ->
@@ -251,6 +270,20 @@ fun SchoolBudgetDashboardScreen(
                                         articleName = articleName,
                                         newAmount = newAmount
                                     )
+                                },
+                                onUpdateRevenueAmounts = { articleRecordId, articleName, newAllocated, newCollected ->
+                                    viewModel.updateRevenueArticleAmounts(
+                                        articleRecordId = articleRecordId,
+                                        articleName = articleName,
+                                        newAllocated = newAllocated,
+                                        newCollected = newCollected
+                                    )
+                                },
+                                onZeroOutCustomRevenues = {
+                                    viewModel.zeroOutCustomRevenues()
+                                },
+                                onZeroOutCustomExpenditures = {
+                                    viewModel.zeroOutCustomExpenditures()
                                 }
                             )
                         }
@@ -283,7 +316,7 @@ fun SchoolBudgetDashboardScreen(
             savedFiscalYears = uiState.savedFiscalYears,
             onSwitchToSavedYear = { year -> viewModel.switchFiscalYear(year) },
             onDismiss = { showFiscalYearWizard = false },
-            onSaveAndInjectSubsidy = { name, wilaya, regime, year, internalCount, semiCount, clearExpenses ->
+            onSaveAndInjectSubsidy = { name, wilaya, regime, year, internalCount, semiCount, clearExpenses, zeroAllocations ->
                 viewModel.applyCateringBudget(
                     institutionName = name,
                     wilayaName = wilaya,
@@ -291,7 +324,8 @@ fun SchoolBudgetDashboardScreen(
                     fiscalYear = year,
                     internalCount = internalCount,
                     semiInternalCount = semiCount,
-                    clearExpensesForTargetYear = clearExpenses
+                    clearExpensesForTargetYear = clearExpenses,
+                    startWithZeroCustomAllocations = zeroAllocations
                 )
             }
         )
