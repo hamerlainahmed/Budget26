@@ -76,7 +76,12 @@ import com.example.ui.healthColor
 import com.example.ui.healthStatusLabelAr
 import com.example.ui.theme.AmberElevated
 import com.example.ui.theme.CrimsonCritical
+import com.example.ui.theme.DarkTextPrimary
+import com.example.ui.theme.DarkTextSecondary
 import com.example.ui.theme.EmeraldStable
+import com.example.ui.theme.SkyInstitutional
+import com.example.ui.theme.SlateBorderDark
+import com.example.ui.theme.SlateCardDark
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -96,9 +101,13 @@ fun ExecutiveHeaderCard(
             .testTag("executive_header_card"),
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFF0D1F38)
+            containerColor = if (isDarkTheme) Color(0xFF111C2E) else Color(0xFF0F2B48)
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        border = BorderStroke(
+            1.dp,
+            if (isDarkTheme) SlateBorderDark else Color(0x33FFFFFF)
+        )
     ) {
         Box(modifier = Modifier.fillMaxWidth()) {
             Image(
@@ -113,10 +122,17 @@ fun ExecutiveHeaderCard(
                     .fillMaxWidth()
                     .background(
                         Brush.verticalGradient(
-                            colors = listOf(
-                                Color(0xCC0A1628),
-                                Color(0xE60E223B)
-                            )
+                            colors = if (isDarkTheme) {
+                                listOf(
+                                    Color(0xF20F172A),
+                                    Color(0xF71E293B)
+                                )
+                            } else {
+                                listOf(
+                                    Color(0xEA0F2B48),
+                                    Color(0xF5163E66)
+                                )
+                            }
                         )
                     )
                     .padding(18.dp)
@@ -132,8 +148,8 @@ fun ExecutiveHeaderCard(
                     ) {
                         Surface(
                             shape = RoundedCornerShape(14.dp),
-                            color = EmeraldStable.copy(alpha = 0.18f),
-                            border = BorderStroke(1.dp, EmeraldStable.copy(alpha = 0.45f)),
+                            color = EmeraldStable.copy(alpha = 0.20f),
+                            border = BorderStroke(1.dp, EmeraldStable.copy(alpha = 0.50f)),
                             modifier = Modifier.size(48.dp)
                         ) {
                             Box(contentAlignment = Alignment.Center) {
@@ -151,16 +167,16 @@ fun ExecutiveHeaderCard(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = config.institutionName,
-                                style = MaterialTheme.typography.titleLarge,
-                                color = Color.White,
+                                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                                color = DarkTextPrimary,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.testTag("header_institution_name")
                             )
                             Text(
-                                text = "${config.wilayaName} • المدونة الرسمية (المنشور 29/2018 والمنشور 13/2026)",
+                                text = "${config.wilayaName} • مدونة ميزانية نفقات المؤسسات التعليمية 2024",
                                 style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFFCBD5E1),
+                                color = DarkTextSecondary,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -176,12 +192,12 @@ fun ExecutiveHeaderCard(
                         Icon(
                             imageVector = if (isDarkTheme) Icons.Default.LightMode else Icons.Default.DarkMode,
                             contentDescription = "تبديل المظهر الليلي والنهاري",
-                            tint = Color(0xFFFDE68A)
+                            tint = if (isDarkTheme) Color(0xFFFDE68A) else Color(0xFFFEF08A)
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -197,17 +213,20 @@ fun ExecutiveHeaderCard(
                     )
                     ExecutiveBadge(
                         text = "الممنوحون: ${config.internalScholarshipCount} داخلي | ${config.semiInternalScholarshipCount} ن.داخلي",
-                        accentColor = Color(0xFF38BDF8)
+                        accentColor = SkyInstitutional
                     )
                 }
 
                 // Fiscal Year History Switcher Bar (سجل السنوات المالية المحفوظة)
                 if (savedFiscalYears.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
                     Surface(
                         shape = RoundedCornerShape(14.dp),
-                        color = Color(0xFF152C4A).copy(alpha = 0.85f),
-                        border = BorderStroke(1.dp, Color(0xFF334155)),
+                        color = if (isDarkTheme) Color(0x991E293B) else Color(0x33FFFFFF),
+                        border = BorderStroke(
+                            1.dp,
+                            if (isDarkTheme) SlateBorderDark else Color(0x44FFFFFF)
+                        ),
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("fiscal_year_history_bar")
@@ -230,7 +249,7 @@ fun ExecutiveHeaderCard(
                                 Text(
                                     text = "سجل السنوات المحفوظة:",
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = Color(0xFFE2E8F0)
+                                    color = DarkTextPrimary
                                 )
                             }
 
@@ -242,23 +261,20 @@ fun ExecutiveHeaderCard(
                                     val isCurrent = yearItem.fiscalYear == config.fiscalYear
                                     Surface(
                                         shape = RoundedCornerShape(50),
-                                        color = if (isCurrent) EmeraldStable else Color(0xFF1E3A5F),
+                                        color = if (isCurrent) EmeraldStable else if (isDarkTheme) Color(0xFF27354A) else Color(0x40FFFFFF),
                                         border = BorderStroke(
                                             1.dp,
-                                            if (isCurrent) EmeraldStable else Color(0xFF475569)
+                                            if (isCurrent) EmeraldStable else Color(0x55FFFFFF)
                                         ),
                                         modifier = Modifier
-                                            .clip(RoundedCornerShape(50))
                                             .clickable { onSwitchFiscalYear(yearItem.fiscalYear) }
-                                            .testTag("switch_year_chip_${yearItem.fiscalYear}")
+                                            .testTag("switch_fiscal_year_pill_${yearItem.fiscalYear}")
                                     ) {
                                         Text(
-                                            text = if (isCurrent) "${yearItem.fiscalYear} (الحالية)" else "${yearItem.fiscalYear}",
-                                            style = MaterialTheme.typography.labelMedium.copy(
-                                                fontWeight = if (isCurrent) FontWeight.Bold else FontWeight.Medium
-                                            ),
-                                            color = if (isCurrent) Color(0xFF042F2E) else Color.White,
-                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                            text = if (isCurrent) "${yearItem.fiscalYear} (الجارية)" else yearItem.fiscalYear.toString(),
+                                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                            color = if (isCurrent) Color(0xFF022C22) else DarkTextPrimary,
+                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                                         )
                                     }
                                 }
@@ -267,7 +283,7 @@ fun ExecutiveHeaderCard(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -277,12 +293,12 @@ fun ExecutiveHeaderCard(
                         onClick = onQuickExpense,
                         colors = ButtonDefaults.buttonColors(
                             containerColor = EmeraldStable,
-                            contentColor = Color(0xFF042F2E)
+                            contentColor = Color(0xFF022C22)
                         ),
                         shape = RoundedCornerShape(14.dp),
                         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp),
                         modifier = Modifier
-                            .weight(1f)
+                            .weight(1.3f)
                             .testTag("quick_expense_button")
                     ) {
                         Icon(
@@ -292,16 +308,19 @@ fun ExecutiveHeaderCard(
                         )
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "+ نفقة سريعة",
-                            style = MaterialTheme.typography.labelLarge
+                            text = "تسجيل نفقة جديدة",
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
                         )
                     }
 
                     OutlinedButton(
                         onClick = onOpenFiscalYearSetup,
-                        border = BorderStroke(1.dp, Color(0xFF64748B)),
+                        border = BorderStroke(
+                            1.dp,
+                            if (isDarkTheme) Color(0xFF475569) else Color(0x88FFFFFF)
+                        ),
                         colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = Color.White
+                            contentColor = DarkTextPrimary
                         ),
                         shape = RoundedCornerShape(14.dp),
                         contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp),
@@ -334,13 +353,13 @@ private fun ExecutiveBadge(
 ) {
     Surface(
         shape = RoundedCornerShape(50),
-        color = accentColor.copy(alpha = 0.16f),
-        border = BorderStroke(1.dp, accentColor.copy(alpha = 0.45f))
+        color = accentColor.copy(alpha = 0.18f),
+        border = BorderStroke(1.dp, accentColor.copy(alpha = 0.50f))
     ) {
         Text(
             text = text,
-            style = MaterialTheme.typography.labelMedium,
-            color = Color.White,
+            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+            color = DarkTextPrimary,
             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
         )
     }
@@ -365,14 +384,14 @@ fun KpiBentoGrid(
             .testTag("kpi_bento_grid"),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        // Row 1: Total Budget Authorized & Total Committed Expenses
+        // Row 1: Total Authorized Budget & Total Committed Expenses
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             KpiStatCard(
                 title = "مجموع الاعتمادات ($fiscalYear)",
-                subtitle = "إجمالي الميزانية المرخصة",
+                subtitle = "إجمالي النفقات المرخصة",
                 amountText = formatDzdWhole(totalAuthorized),
                 accentColor = MaterialTheme.colorScheme.primary,
                 icon = Icons.Default.AccountBalance,
@@ -398,7 +417,7 @@ fun KpiBentoGrid(
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             KpiStatCard(
-                title = "الرصيد المتبقي العام",
+                title = "الرصيد المالي المتبقي",
                 subtitle = "الاعتمادات المتاحة للصرف",
                 amountText = formatDzdWhole(netRemaining),
                 accentColor = if (netRemaining >= 0) EmeraldStable else CrimsonCritical,
@@ -408,10 +427,10 @@ fun KpiBentoGrid(
                     .testTag("kpi_net_remaining_card")
             )
             KpiStatCard(
-                title = "إعانة الإطعام (ب06/م01)",
+                title = "اعتماد الإطعام (ب06/م01)",
                 subtitle = "داخلي ($internalStudents) + ن.داخلي ($semiInternalStudents)",
                 amountText = formatDzdWhole(cateringSubsidy),
-                accentColor = Color(0xFF0EA5E9),
+                accentColor = SkyInstitutional,
                 icon = Icons.Default.Restaurant,
                 modifier = Modifier
                     .weight(1f)
@@ -469,16 +488,16 @@ private fun KpiStatCard(
                 )
                 Box(
                     modifier = Modifier
-                        .size(30.dp)
+                        .size(32.dp)
                         .clip(CircleShape)
-                        .background(accentColor.copy(alpha = 0.14f)),
+                        .background(accentColor.copy(alpha = 0.16f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = icon,
                         contentDescription = null,
                         tint = accentColor,
-                        modifier = Modifier.size(16.dp)
+                        modifier = Modifier.size(17.dp)
                     )
                 }
             }
@@ -577,12 +596,12 @@ private fun GlobalConsumptionCard(
 
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "نسبة استهلاك ميزانية السنة المالية $fiscalYear",
-                            style = MaterialTheme.typography.titleSmall,
+                            text = "نسبة استهلاك ميزانية النفقات ($fiscalYear)",
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
-                            text = "مخصص المنشور 13/2026 مدرج آلياً في الإيرادات (ب01/م01) والنفقات (ب06/م01)",
+                            text = "مخصص الإطعام (المنشور 13/2026) محجوز آلياً في نفقات الإطعام (ب06/م01)",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -621,7 +640,7 @@ private fun GlobalConsumptionCard(
             val internalTotal = internalStudents * Circular13Constants.INTERNAL_STUDENT_RATE_DZD
             val semiTotal = semiInternalStudents * Circular13Constants.SEMI_INTERNAL_STUDENT_RATE_DZD
             Text(
-                text = "تفصيل الإطعام: داخلي (${formatDzdWhole(internalTotal)}) + نصف داخلي (${formatDzdWhole(semiTotal)}) = ${formatDzdCurrency(cateringSubsidy)}",
+                text = "تفصيل اعتماد الإطعام: داخلي (${formatDzdWhole(internalTotal)}) + نصف داخلي (${formatDzdWhole(semiTotal)}) = ${formatDzdCurrency(cateringSubsidy)}",
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary
             )

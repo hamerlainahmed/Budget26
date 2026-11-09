@@ -5,8 +5,9 @@ import androidx.room.PrimaryKey
 import kotlin.math.max
 
 /**
- * Circular No. 29 dated Feb 15, 2018 (المنشور الوزاري رقم 29 المؤرخ في 15 فيفري 2018)
- * as updated by Ministerial Circular No. 13 dated Feb 15, 2026 (المنشور الوزاري رقم 13 المؤرخ في 15 فيفري 2026).
+ * Algerian Public Educational Institutions Budget Nomenclature (مدونة ميزانية المؤسسات التعليمية 2024)
+ * Based on the official model (حسب الطبيعة الاقتصادية للنفقة - المتوسطة والثانوية)
+ * and Circular 13 dated Feb 15, 2026 for Catering rates.
  */
 object Circular13Constants {
     const val INTERNAL_STUDENT_RATE_DZD = 33_696.00
@@ -14,9 +15,8 @@ object Circular13Constants {
     const val CHAPTER_2_MIN_OPERATIONAL_RATIO = 0.35 // 35% minimum for Chapter 2 (Utilities & Annexes)
     const val DEFAULT_FISCAL_YEAR = 2026
 
-    // Official base article codes in Circular 29/2018 nomenclature
-    const val REV_CATERING_BASE_ID = "REV_01_01" // العنوان 1 - الباب 01 - المادة 01: إعانة التسيير للتغذية
-    const val EXP_CATERING_BASE_ID = "EXP_06_01" // العنوان 2 - الفرع 1 - الباب 06 - المادة 01: إطعام التلاميذ الداخليين ونصف الداخليين
+    // Official base expenditure article codes
+    const val EXP_CATERING_BASE_ID = "EXP_06_01" // الباب 06 - المادة 01: نفقات الإطعام
     const val EXP_CHAPTER_2_BASE_ID = "EXP_CH02" // الباب 02: التكاليف الملحقة
     const val EXP_CHAPTER_6_BASE_ID = "EXP_CH06" // الباب 06: نفقات الإطعام
 
@@ -32,7 +32,6 @@ object Circular13Constants {
 }
 
 enum class SectionType {
-    REVENUE,
     EXPENDITURE
 }
 
@@ -65,23 +64,24 @@ data class InstitutionConfigEntity(
 }
 
 /**
- * Official nomenclature Chapters from Circular No. 29 dated Feb 15, 2018.
+ * Official nomenclature Chapters from the 2024 Ministerial Model (مدونة 2024).
+ * Focused exclusively on Expenditures (النفقات).
  */
 @Entity(tableName = "chapters")
 data class ChapterEntity(
-    @PrimaryKey val id: String, // e.g., "REV_CH01", "EXP_CH01".."EXP_CH19"
-    val sectionType: String,   // "REVENUE" or "EXPENDITURE"
+    @PrimaryKey val id: String, // e.g. "EXP_CH01".."EXP_CH20"
+    val sectionType: String = SectionType.EXPENDITURE.name,
     val branchNumber: Int,     // 1, 2, or 3 (الفرع الأول، الفرع الثاني، الفرع الثالث)
-    val branchTitle: String,   // e.g., "الفرع الأول: نفقات تسيير المصالح"
-    val chapterNumber: Int,    // Official chapter number (الباب 01 .. الباب 15)
-    val officialCode: String,  // e.g., "الباب 01", "الباب 02"
-    val name: String,          // Official Arabic title in Circular 29/2018
+    val branchTitle: String,   // e.g. "الفرع الأول: نفقات تسيير المصالح"
+    val chapterNumber: Int,    // 1..20
+    val officialCode: String,  // e.g. "الباب 01", "الباب 02"
+    val name: String,          // Official Arabic title from 2024 nomenclature
     val description: String
 )
 
 /**
  * Per-Fiscal-Year Article allocations and expenditures.
- * Each fiscal year has its own independent records so switching years preserves full history.
+ * Allows the Authorizing Officer (الآمر بالصرف) to allocate credits and track expenditure consumption.
  */
 @Entity(tableName = "articles")
 data class ArticleEntity(
@@ -89,14 +89,14 @@ data class ArticleEntity(
     val baseArticleId: String,         // e.g., "EXP_02_01"
     val fiscalYear: Int,               // e.g., 2026
     val chapterId: String,             // Foreign key to ChapterEntity.id
-    val sectionType: String,           // "REVENUE" or "EXPENDITURE"
-    val chapterNumber: Int,            // 1..15
-    val articleNumber: Int,            // 1..8 (المادة 01، المادة 02...)
-    val officialCode: String,          // Official الباب/المادة notation: e.g., "ب02 / م01"
-    val name: String,                  // Official Arabic article title from Circular 29/2018
+    val sectionType: String = SectionType.EXPENDITURE.name,
+    val chapterNumber: Int,            // 1..20
+    val articleNumber: Int,            // 1..8
+    val officialCode: String,          // e.g., "ب02 / م01"
+    val name: String,                  // Official Arabic article title
     val description: String,
-    val allocatedAmount: Double,
-    val spentAmount: Double = 0.0,
+    val allocatedAmount: Double,       // الاعتماد المفتوح / المحجوز من الآمر بالصرف
+    val spentAmount: Double = 0.0,     // النفقات المصروفة / الملتزم بها
     val isAutoCatering: Boolean = false
 ) {
     val remainingCredit: Double
@@ -119,8 +119,8 @@ data class ArticleEntity(
 }
 
 /**
- * Per-Fiscal-Year Transaction (حوالة دفع / فاتورة).
- * Stored with `fiscalYear` so each fiscal year preserves its own independent ledger history.
+ * Per-Fiscal-Year Commitment / Transaction (سند الطلب - Bon de Commande).
+ * يحجز الآمر بالصرف النفقات عبر سندات الطلب الخاصة بالمادة.
  */
 @Entity(tableName = "transactions")
 data class TransactionEntity(
@@ -131,7 +131,7 @@ data class TransactionEntity(
     val chapterName: String,
     val articleCode: String,
     val articleName: String,
-    val voucherNumber: String,
+    val orderNumber: String,   // رقم سند الطلب (BC-...)
     val supplierName: String,
     val description: String,
     val amount: Double,

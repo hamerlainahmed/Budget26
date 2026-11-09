@@ -10,7 +10,6 @@ import com.example.data.ChapterWithArticles
 import com.example.data.Circular13Constants
 import com.example.data.ConsumptionHealth
 import com.example.data.InstitutionConfigEntity
-import com.example.data.SectionType
 import com.example.data.TransactionEntity
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -22,14 +21,14 @@ import kotlin.math.max
 
 enum class BudgetTab(val index: Int, val titleAr: String) {
     CHAPTERS_DEEP_DIVE(0, "الأبواب والمواد"),
-    ALLOCATIONS_MATRIX(1, "تخصيص الميزانية"),
-    TRANSACTIONS_LEDGER(2, "سجل الحوالات")
+    ALLOCATIONS_MATRIX(1, "حجز الاعتمادات"),
+    TRANSACTIONS_LEDGER(2, "سجل سندات الطلب")
 }
 
 data class PendingExpenseOverBudgetWarning(
     val article: ArticleEntity,
     val chapterName: String,
-    val voucherNumber: String,
+    val orderNumber: String,
     val supplierName: String,
     val description: String,
     val requestedAmount: Double,
@@ -49,7 +48,6 @@ data class BudgetUiState(
         isActiveYear = true
     ),
     val savedFiscalYears: List<InstitutionConfigEntity> = emptyList(),
-    val revenueChapters: List<ChapterWithArticles> = emptyList(),
     val expenditureChapters: List<ChapterWithArticles> = emptyList(),
     val transactions: List<TransactionEntity> = emptyList(),
     val totalAuthorizedBudget: Double = 0.0,
@@ -57,8 +55,6 @@ data class BudgetUiState(
     val netRemainingBalance: Double = 0.0,
     val globalConsumptionRate: Double = 0.0,
     val globalHealthStatus: ConsumptionHealth = ConsumptionHealth.STABLE,
-    val totalRevenuesAllocated: Double = 0.0,
-    val totalRevenuesCollected: Double = 0.0,
     val cateringSubsidyAmount: Double = 0.0,
     val chapter2Audit: Chapter2AuditCheck = Chapter2AuditCheck(
         chapter2Allocated = 0.0,
@@ -104,12 +100,7 @@ class BudgetViewModel(
             isActiveYear = true
         )
 
-        val revenueChapters = allChapters.filter {
-            it.chapter.sectionType == SectionType.REVENUE.name
-        }
-        val expenditureChapters = allChapters.filter {
-            it.chapter.sectionType == SectionType.EXPENDITURE.name
-        }
+        val expenditureChapters = allChapters
 
         val totalAuthorized = expenditureChapters.sumOf { it.totalAllocated }
         val totalSpent = expenditureChapters.sumOf { it.totalSpent }
@@ -122,8 +113,6 @@ class BudgetViewModel(
             else -> ConsumptionHealth.STABLE
         }
 
-        val totalRevenues = revenueChapters.sumOf { it.totalAllocated }
-        val totalRevenuesCollected = revenueChapters.sumOf { it.totalSpent }
         val chapter2Audit = evaluateChapter2Audit(expenditureChapters)
 
         val filteredTransactions = if (query.isBlank()) {
@@ -133,7 +122,7 @@ class BudgetViewModel(
             transactions.filter { tx ->
                 tx.description.contains(q, ignoreCase = true) ||
                     tx.supplierName.contains(q, ignoreCase = true) ||
-                    tx.voucherNumber.contains(q, ignoreCase = true) ||
+                    tx.orderNumber.contains(q, ignoreCase = true) ||
                     tx.articleName.contains(q, ignoreCase = true) ||
                     tx.articleCode.contains(q, ignoreCase = true) ||
                     tx.chapterName.contains(q, ignoreCase = true)
@@ -144,7 +133,6 @@ class BudgetViewModel(
             isLoading = false,
             config = config,
             savedFiscalYears = allYears,
-            revenueChapters = revenueChapters,
             expenditureChapters = expenditureChapters,
             transactions = filteredTransactions,
             totalAuthorizedBudget = totalAuthorized,
@@ -152,8 +140,6 @@ class BudgetViewModel(
             netRemainingBalance = remaining,
             globalConsumptionRate = consumptionRate,
             globalHealthStatus = globalHealth,
-            totalRevenuesAllocated = totalRevenues,
-            totalRevenuesCollected = totalRevenuesCollected,
             cateringSubsidyAmount = config.totalCateringSubsidy,
             chapter2Audit = chapter2Audit,
             selectedTab = selectedTab,
@@ -167,7 +153,7 @@ class BudgetViewModel(
     )
 
     /**
-     * Evaluates Circular 13/2026 condition for Chapter 2 (الباب 02: التكاليف الملحقة):
+     * Evaluates condition for Chapter 2 (الباب 02: التكاليف الملحقة):
      * Must represent at least 35% of Branch 1 operational charges (excluding Chapter 6 Catering).
      */
     fun evaluateChapter2Audit(expenditureChapters: List<ChapterWithArticles>): Chapter2AuditCheck {
@@ -223,7 +209,7 @@ class BudgetViewModel(
         viewModelScope.launch {
             repository.switchFiscalYear(fiscalYear)
             statusBannerFlow.value =
-                "تم استرجاع وعرض سجل السنة المالية $fiscalYear بكامل إيراداتها واعتماداتها وحوالاتها المحفوظة"
+                "تم استرجاع وعرض سجل السنة المالية $fiscalYear بكامل اعتماداتها وحوالاتها المحفوظة"
         }
     }
 
@@ -231,8 +217,7 @@ class BudgetViewModel(
      * Opens a new fiscal year (or updates/resets an existing one):
      * - Preserves previous fiscal years and their expenses in history.
      * - Clears/starts with 0 expenses when opening a new fiscal year (or when clearExpenses is checked).
-     * - Optionally zeroes out non-catering revenue & expenditure allocations so the user can enter them from scratch.
-     * - Automatically injects Circular 13/2026 catering subsidy into Revenue ب01/م01 and Expenditure ب06/م01.
+     * - Injects Circular 13/2026 catering subsidy into Expenditure ب06/م01.
      */
     fun applyCateringBudget(
         institutionName: String,
@@ -256,56 +241,23 @@ class BudgetViewModel(
                 startWithZeroCustomAllocations = startWithZeroCustomAllocations
             )
             val resetNote = when {
-                startWithZeroCustomAllocations -> " (مع تصفير الإيرادات والاعتمادات غير الآلية لتخصيصها يدوياً)"
+                startWithZeroCustomAllocations -> " (مع تصفير الاعتمادات لتخصيصها يدوياً)"
                 clearExpensesForTargetYear -> " (مع تصفير النفقات للسنة الجديدة وحفظ السنوات السابقة في الأرشيف)"
                 else -> ""
             }
             statusBannerFlow.value =
-                "تم فتح السنة المالية $fiscalYear$resetNote وضخ اعتماد الإطعام آلياً في الإيرادات (ب01/م01) والنفقات (ب06/م01) بمبلغ ${formatDzdCurrency(totalCatering)}"
+                "تم فتح السنة المالية $fiscalYear$resetNote وحجز اعتماد الإطعام آلياً في النفقات (ب06/م01) بمبلغ ${formatDzdCurrency(totalCatering)}"
         }
     }
 
     /**
-     * Customizes the authorized expenditure credit for an individual article in the active fiscal year.
+     * Customizes the authorized expenditure credit (حجز الاعتماد) for an individual article in the active fiscal year.
      */
     fun updateArticleAllocation(articleRecordId: String, articleName: String, newAmount: Double) {
         viewModelScope.launch {
             repository.updateArticleAllocation(articleRecordId = articleRecordId, newAmount = newAmount)
             statusBannerFlow.value =
-                "تم تخصيص الاعتماد المفتوح للمادة ($articleName) بمبلغ ${formatDzdCurrency(newAmount)}"
-        }
-    }
-
-    /**
-     * Customizes both the estimated/open revenue (الإيراد المقدر/المفتوح) and collected revenue (الإيراد المحصّل)
-     * for a Revenue article in Title 1.
-     */
-    fun updateRevenueArticleAmounts(
-        articleRecordId: String,
-        articleName: String,
-        newAllocated: Double,
-        newCollected: Double
-    ) {
-        viewModelScope.launch {
-            repository.updateRevenueArticleAmounts(
-                articleRecordId = articleRecordId,
-                newAllocated = newAllocated,
-                newCollected = newCollected
-            )
-            statusBannerFlow.value =
-                "تم تخصيص إيراد المادة ($articleName): المقدر ${formatDzdCurrency(newAllocated)} • المحصّل ${formatDzdCurrency(newCollected)}"
-        }
-    }
-
-    /**
-     * Zeroes out all non-catering revenue articles for the active fiscal year so the user can enter custom revenues from scratch.
-     */
-    fun zeroOutCustomRevenues() {
-        val currentYear = uiState.value.config.fiscalYear
-        viewModelScope.launch {
-            repository.zeroOutCustomRevenues(currentYear)
-            statusBannerFlow.value =
-                "تم تصفير الإيرادات غير الآلية للسنة المالية $currentYear (مع الإبقاء على إعانة التغذية ب01/م01) لتتمكن من تخصيصها يدوياً"
+                "تم حجز الاعتماد المفتوح للمادة ($articleName) بمبلغ ${formatDzdCurrency(newAmount)}"
         }
     }
 
@@ -317,17 +269,18 @@ class BudgetViewModel(
         viewModelScope.launch {
             repository.zeroOutCustomExpenditures(currentYear)
             statusBannerFlow.value =
-                "تم تصفير اعتمادات النفقات غير الآلية للسنة المالية $currentYear (مع الإبقاء على إطعام الممنوحين ب06/م01) لتتمكن من تخصيصها يدوياً"
+                "تم تصفير اعتمادات النفقات غير الآلية للسنة المالية $currentYear (مع الإبقاء على إطعام الممنوحين ب06/م01) لتتمكن من حجزها يدوياً"
         }
     }
 
     /**
-     * Registers an expense with an automatic Over-Budget check (> 100%).
+     * Registers an expense order (سند الطلب) with an automatic Over-Budget check.
+     * If the credit is insufficient (amount > remainingBefore), shows a warning with the exact deficit.
      */
     fun addExpense(
         article: ArticleEntity,
         chapterName: String,
-        voucherNumber: String,
+        orderNumber: String,
         supplierName: String,
         description: String,
         amount: Double,
@@ -348,7 +301,7 @@ class BudgetViewModel(
             _overBudgetWarning.value = PendingExpenseOverBudgetWarning(
                 article = article,
                 chapterName = chapterName,
-                voucherNumber = voucherNumber,
+                orderNumber = orderNumber,
                 supplierName = supplierName,
                 description = description,
                 requestedAmount = amount,
@@ -363,13 +316,13 @@ class BudgetViewModel(
             repository.addExpense(
                 articleRecordId = article.id,
                 chapterName = chapterName,
-                voucherNumber = voucherNumber,
+                orderNumber = orderNumber,
                 supplierName = supplierName,
                 description = description,
                 amount = amount
             )
             statusBannerFlow.value =
-                "تم تسجيل النفقة (${formatDzdCurrency(amount)}) في السنة المالية ${article.fiscalYear} وخصمها من المادة ${article.officialCode}"
+                "تم تسجيل سند الطلب ($orderNumber) بمبلغ ${formatDzdCurrency(amount)} واقتطاعه من اعتماد المادة ${article.officialCode}"
             onCommitted()
         }
     }
@@ -379,7 +332,7 @@ class BudgetViewModel(
         addExpense(
             article = pending.article,
             chapterName = pending.chapterName,
-            voucherNumber = pending.voucherNumber,
+            orderNumber = pending.orderNumber,
             supplierName = pending.supplierName,
             description = pending.description,
             amount = pending.requestedAmount,
@@ -400,28 +353,26 @@ class BudgetViewModel(
         viewModelScope.launch {
             repository.deleteTransaction(transaction.id)
             statusBannerFlow.value =
-                "تم إلغاء الحوالة ${transaction.voucherNumber} واسترجاع ${formatDzdCurrency(transaction.amount)} إلى رصيد المادة ${transaction.articleCode}"
+                "تم إلغاء سند الطلب (${transaction.orderNumber}) واسترجاع مبلغ ${formatDzdCurrency(transaction.amount)} إلى رصيد المادة ${transaction.articleCode}"
         }
     }
 
     /**
-     * Automatically adjusts Chapter 2 utilities allocation to satisfy Circular 13/2026 (>= 35%).
+     * Fixes Chapter 2 deficit to reach the 35% minimum operational ratio.
      */
     fun autoFixChapter2Compliance() {
-        val state = uiState.value
-        val currentAudit = state.chapter2Audit
-        if (currentAudit.isCompliant || currentAudit.deficitAmount <= 0.0) return
+        val audit = uiState.value.chapter2Audit
+        val fiscalYear = uiState.value.config.fiscalYear
         viewModelScope.launch {
-            repository.autoFixChapter2Compliance(
-                fiscalYear = state.config.fiscalYear,
-                deficitAmount = currentAudit.deficitAmount
-            )
+            repository.autoFixChapter2Compliance(fiscalYear, audit.deficitAmount)
             statusBannerFlow.value =
-                "تم تعديل اعتماد الباب 02 (التكاليف الملحقة) للسنة المالية ${state.config.fiscalYear} لاستيفاء النسبة القانونية (≥ 35%)"
+                "تمت تسوية وتكييف اعتمادات الباب 02 مع شرط المنشور 13/2026 (≥ 35% من نفقات التسيير)"
         }
     }
 
-    class Factory(private val repository: BudgetRepository) : ViewModelProvider.Factory {
+    class Factory(
+        private val repository: BudgetRepository
+    ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             if (modelClass.isAssignableFrom(BudgetViewModel::class.java)) {

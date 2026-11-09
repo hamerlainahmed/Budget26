@@ -79,22 +79,6 @@ class BudgetRepository(private val dao: BudgetDao) {
         )
     }
 
-    suspend fun updateRevenueArticleAmounts(
-        articleRecordId: String,
-        newAllocated: Double,
-        newCollected: Double
-    ) {
-        dao.updateRevenueArticleAmounts(
-            articleRecordId = articleRecordId,
-            newAllocated = newAllocated.coerceAtLeast(0.0),
-            newCollected = newCollected.coerceAtLeast(0.0)
-        )
-    }
-
-    suspend fun zeroOutCustomRevenues(fiscalYear: Int) {
-        dao.zeroOutCustomRevenuesForYear(fiscalYear)
-    }
-
     suspend fun zeroOutCustomExpenditures(fiscalYear: Int) {
         dao.zeroOutCustomExpendituresForYear(fiscalYear)
     }
@@ -102,7 +86,7 @@ class BudgetRepository(private val dao: BudgetDao) {
     suspend fun addExpense(
         articleRecordId: String,
         chapterName: String,
-        voucherNumber: String,
+        orderNumber: String,
         supplierName: String,
         description: String,
         amount: Double
@@ -110,12 +94,15 @@ class BudgetRepository(private val dao: BudgetDao) {
         return dao.commitExpenseTransaction(
             articleRecordId = articleRecordId,
             chapterName = chapterName,
-            voucherNumber = voucherNumber,
+            orderNumber = orderNumber,
             supplierName = supplierName,
             description = description,
             amount = amount
         )
     }
+
+    fun getTransactionsForArticle(articleId: String): Flow<List<TransactionEntity>> =
+        dao.observeTransactionsByArticle(articleId)
 
     suspend fun deleteTransaction(transactionId: Long) {
         dao.rollbackExpenseTransaction(transactionId)

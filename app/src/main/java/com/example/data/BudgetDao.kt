@@ -29,13 +29,13 @@ interface BudgetDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertInstitutionConfig(config: InstitutionConfigEntity)
 
-    @Query("SELECT * FROM chapters ORDER BY sectionType ASC, branchNumber ASC, chapterNumber ASC")
+    @Query("SELECT * FROM chapters ORDER BY branchNumber ASC, chapterNumber ASC")
     fun observeChapters(): Flow<List<ChapterEntity>>
 
-    @Query("SELECT * FROM articles WHERE fiscalYear = :fiscalYear ORDER BY sectionType ASC, chapterNumber ASC, articleNumber ASC")
+    @Query("SELECT * FROM articles WHERE fiscalYear = :fiscalYear ORDER BY chapterNumber ASC, articleNumber ASC")
     fun observeArticlesByYear(fiscalYear: Int): Flow<List<ArticleEntity>>
 
-    @Query("SELECT * FROM articles WHERE fiscalYear = :fiscalYear ORDER BY sectionType ASC, chapterNumber ASC, articleNumber ASC")
+    @Query("SELECT * FROM articles WHERE fiscalYear = :fiscalYear ORDER BY chapterNumber ASC, articleNumber ASC")
     suspend fun getArticlesByYearOnce(fiscalYear: Int): List<ArticleEntity>
 
     @Query("SELECT * FROM articles WHERE id = :articleRecordId LIMIT 1")
@@ -56,27 +56,23 @@ interface BudgetDao {
     @Query("UPDATE articles SET allocatedAmount = :newAllocated WHERE id = :articleRecordId")
     suspend fun updateArticleAllocation(articleRecordId: String, newAllocated: Double)
 
-    @Query("UPDATE articles SET allocatedAmount = :newAllocated, spentAmount = :newCollected WHERE id = :articleRecordId")
-    suspend fun updateRevenueArticleAmounts(
-        articleRecordId: String,
-        newAllocated: Double,
-        newCollected: Double
-    )
-
     @Query("UPDATE articles SET spentAmount = :newSpent WHERE id = :articleRecordId")
     suspend fun updateArticleSpent(articleRecordId: String, newSpent: Double)
 
     @Query("UPDATE articles SET spentAmount = 0.0 WHERE fiscalYear = :fiscalYear")
     suspend fun resetAllSpentAmountsForYear(fiscalYear: Int)
 
-    @Query("UPDATE articles SET allocatedAmount = 0.0, spentAmount = 0.0 WHERE fiscalYear = :fiscalYear AND sectionType = 'REVENUE' AND isAutoCatering = 0")
-    suspend fun zeroOutCustomRevenuesForYear(fiscalYear: Int)
-
-    @Query("UPDATE articles SET allocatedAmount = 0.0 WHERE fiscalYear = :fiscalYear AND sectionType = 'EXPENDITURE' AND isAutoCatering = 0")
+    @Query("UPDATE articles SET allocatedAmount = 0.0 WHERE fiscalYear = :fiscalYear AND isAutoCatering = 0")
     suspend fun zeroOutCustomExpendituresForYear(fiscalYear: Int)
 
     @Query("SELECT * FROM transactions WHERE fiscalYear = :fiscalYear ORDER BY timestamp DESC, id DESC")
     fun observeTransactionsByYear(fiscalYear: Int): Flow<List<TransactionEntity>>
+
+    @Query("SELECT * FROM transactions WHERE articleId = :articleId ORDER BY timestamp ASC, id ASC")
+    fun observeTransactionsByArticle(articleId: String): Flow<List<TransactionEntity>>
+
+    @Query("SELECT * FROM transactions WHERE articleId = :articleId ORDER BY timestamp ASC, id ASC")
+    suspend fun getTransactionsByArticleOnce(articleId: String): List<TransactionEntity>
 
     @Query("SELECT * FROM transactions WHERE id = :transactionId LIMIT 1")
     suspend fun getTransactionById(transactionId: Long): TransactionEntity?
@@ -103,16 +99,6 @@ interface BudgetDao {
     /**
      * Opens a new Fiscal Year (or updates/resets an existing one) while preserving all other
      * fiscal years and their expenses in the database history.
-     *
-     * - If the target `fiscalYear` has no articles yet, creates a fresh set of nomenclature articles
-     *   for `fiscalYear` with `spentAmount = 0.0` (zero expenses) and empty transactions ledger.
-     * - If `clearExpensesForTargetYear` is true, clears any previous expenses/transactions for `fiscalYear`
-     *   so the opened year starts clean.
-     * - If `startWithZeroCustomAllocations` is true, sets all non-catering revenue and expenditure
-     *   allocations to `0.00 DZD` so the user can customize every chapter/article from scratch.
-     * - Automatically injects the calculated Circular 13/2026 Catering Subsidy into:
-     *   1) Revenue Title 1 -> Chapter 1 -> Article 1 (REV_01_01: إعانة التسيير للتغذية)
-     *   2) Expenditure Title 2 -> Branch 1 -> Chapter 6 -> Article 1 (EXP_06_01: إطعام التلاميذ الداخليين ونصف الداخليين)
      */
     @Transaction
     suspend fun applyCateringBudgetTransaction(
@@ -156,22 +142,15 @@ interface BudgetDao {
                 deleteAllTransactionsForYear(fiscalYear)
                 resetAllSpentAmountsForYear(fiscalYear)
             }
-            // Inject catering subsidy into Revenue 01/01 and Expenditure 06/01 for this fiscal year
-            val revRecordId = Circular13Constants.articleRecordId(
-                fiscalYear = fiscalYear,
-                baseArticleId = Circular13Constants.REV_CATERING_BASE_ID
-            )
+            // Inject catering subsidy into Expenditure 06/01 for this fiscal year
             val expRecordId = Circular13Constants.articleRecordId(
                 fiscalYear = fiscalYear,
                 baseArticleId = Circular13Constants.EXP_CATERING_BASE_ID
             )
-            updateArticleAllocation(articleRecordId = revRecordId, newAllocated = calculatedSubsidy)
-            updateArticleSpent(articleRecordId = revRecordId, newSpent = calculatedSubsidy)
             updateArticleAllocation(articleRecordId = expRecordId, newAllocated = calculatedSubsidy)
         }
 
         if (startWithZeroCustomAllocations) {
-            zeroOutCustomRevenuesForYear(fiscalYear)
             zeroOutCustomExpendituresForYear(fiscalYear)
         }
 
@@ -179,13 +158,13 @@ interface BudgetDao {
     }
 
     /**
-     * Commits an expense to a specific article in its fiscal year and updates spentAmount atomically.
+     * Commits an expenditure order (سند الطلب) to a specific article in its fiscal year and updates spentAmount atomically.
      */
     @Transaction
     suspend fun commitExpenseTransaction(
         articleRecordId: String,
         chapterName: String,
-        voucherNumber: String,
+        orderNumber: String,
         supplierName: String,
         description: String,
         amount: Double,
@@ -204,7 +183,7 @@ interface BudgetDao {
             chapterName = chapterName,
             articleCode = article.officialCode,
             articleName = article.name,
-            voucherNumber = voucherNumber.trim().ifEmpty { "MD-${article.fiscalYear}/${(100..999).random()}" },
+            orderNumber = orderNumber.trim().ifEmpty { "BC-${article.fiscalYear}/${(100..999).random()}" },
             supplierName = supplierName.trim().ifEmpty { "ممون معتمد" },
             description = description.trim(),
             amount = amount,

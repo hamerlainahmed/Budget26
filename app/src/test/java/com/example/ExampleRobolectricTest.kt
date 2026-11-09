@@ -27,7 +27,7 @@ class ExampleRobolectricTest {
     }
 
     @Test
-    fun `seed database, verify Circular 29_2018 nomenclature, multi-year history, and revenue_expenditure customization`() = runBlocking {
+    fun `seed database, verify 2024 nomenclature expenditures, credit reservation, balance checks and consumption rates`() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val db = Room.inMemoryDatabaseBuilder(context, BudgetDatabase::class.java)
             .allowMainThreadQueries()
@@ -36,102 +36,84 @@ class ExampleRobolectricTest {
 
         BudgetDatabase.seedDatabaseIfEmpty(dao)
 
-        // 1. Verify pre-seeded history contains both 2025 and 2026
+        // 1. Verify chapters are exclusively expenditures and match the 2024 nomenclature (20 chapters)
+        val chapters = dao.observeChapters().first()
+        assertEquals(20, chapters.size)
+        assertTrue(chapters.all { it.sectionType == "EXPENDITURE" })
+        assertEquals("الباب 01", chapters[0].officialCode)
+        assertEquals("تسديد المصاريف", chapters[0].name)
+        assertEquals("الباب 02", chapters[1].officialCode)
+        assertEquals("التكاليف الملحقة", chapters[1].name)
+        assertEquals("الباب 03", chapters[2].officialCode)
+        assertEquals("اللوازم", chapters[2].name)
+        assertEquals("الباب 06", chapters[5].officialCode)
+        assertEquals("نفقات الإطعام", chapters[5].name)
+
+        // 2. Verify pre-seeded history contains both 2025 and 2026
         val savedYears = dao.observeAllFiscalYears().first()
         assertEquals(2, savedYears.size)
         assertTrue(savedYears.any { it.fiscalYear == 2025 })
         assertTrue(savedYears.any { it.fiscalYear == 2026 && it.isActiveYear })
 
-        // 2. Apply updated pupil counts on 2026 without clearing 2026 expenses
-        val expectedSubsidy = (50 * 33_696.00) + (200 * 13_248.00)
-        val returnedSubsidy = dao.applyCateringBudgetTransaction(
-            institutionName = "ثانوية العقيد لطفي",
-            wilayaName = "مديرية التربية لولاية وهران",
-            regime = "داخلي ونصف داخلي",
-            fiscalYear = 2026,
-            internalStudents = 50,
-            semiInternalStudents = 200,
-            clearExpensesForTargetYear = false,
-            startWithZeroCustomAllocations = false,
-            templateArticlesProvider = BudgetDatabase::buildCleanArticlesForFiscalYear
-        )
-        assertEquals(expectedSubsidy, returnedSubsidy, 0.01)
-
-        val rev2026Id = Circular13Constants.articleRecordId(2026, Circular13Constants.REV_CATERING_BASE_ID)
-        val exp2026Id = Circular13Constants.articleRecordId(2026, Circular13Constants.EXP_CATERING_BASE_ID)
-        val revArticle = dao.getArticleById(rev2026Id)
-        val expArticle = dao.getArticleById(exp2026Id)
-        assertNotNull(revArticle)
-        assertNotNull(expArticle)
-        assertEquals(expectedSubsidy, revArticle!!.allocatedAmount, 0.01)
-        assertEquals(expectedSubsidy, expArticle!!.allocatedAmount, 0.01)
-
-        // 3. Verify custom Revenue customization (المقدر + المحصّل) and custom Expenditure allocation
-        val customRevRecordId = Circular13Constants.articleRecordId(2026, "REV_01_02")
-        dao.updateRevenueArticleAmounts(
-            articleRecordId = customRevRecordId,
-            newAllocated = 3_500_000.0,
-            newCollected = 3_100_000.0
-        )
-        val updatedRev0102 = dao.getArticleById(customRevRecordId)!!
-        assertEquals(3_500_000.0, updatedRev0102.allocatedAmount, 0.01)
-        assertEquals(3_100_000.0, updatedRev0102.spentAmount, 0.01)
-
-        val customExpRecordId = Circular13Constants.articleRecordId(2026, "EXP_02_01")
+        // 3. Verify Authorizing Officer credit allocation (حجز الاعتماد)
+        val exp2026UtilityId = Circular13Constants.articleRecordId(2026, "EXP_02_01")
         dao.updateArticleAllocation(
-            articleRecordId = customExpRecordId,
-            newAllocated = 1_800_000.0
+            articleRecordId = exp2026UtilityId,
+            newAllocated = 1_500_000.0
         )
-        val updatedExp0201 = dao.getArticleById(customExpRecordId)!!
-        assertEquals(1_800_000.0, updatedExp0201.allocatedAmount, 0.01)
+        val updatedUtility = dao.getArticleById(exp2026UtilityId)!!
+        assertEquals(1_500_000.0, updatedUtility.allocatedAmount, 0.01)
 
-        // 4. Commit expense on 2026 and verify spentAmount increases, then rollback
-        val spentBefore = expArticle.spentAmount
+        // 4. Verify balance check and sufficient credit deduction via سند الطلب
+        val availableBefore = updatedUtility.remainingCredit
+        val expenseAmount = 200_000.0
+        assertTrue("يجب أن يكون الاعتماد كافياً قبل الاقتطاع", availableBefore >= expenseAmount)
+
         val txId = dao.commitExpenseTransaction(
-            articleRecordId = exp2026Id,
-            chapterName = "الباب 06: نفقات الإطعام",
-            voucherNumber = "MD-2026/999",
-            supplierName = "ممون تجريبي",
-            description = "فاتورة تموين غذائي",
-            amount = 150_000.0
+            articleRecordId = exp2026UtilityId,
+            chapterName = "الباب 02: التكاليف الملحقة",
+            orderNumber = "BC-2026/777",
+            supplierName = "سونلغاز",
+            description = "فاتورة استهلاك الغاز والكهرباء للثلاثي الأول",
+            amount = expenseAmount
         )
-        val afterSpend = dao.getArticleById(exp2026Id)!!
-        assertEquals(spentBefore + 150_000.0, afterSpend.spentAmount, 0.01)
 
+        val afterExpense = dao.getArticleById(exp2026UtilityId)!!
+        assertEquals(availableBefore - expenseAmount, afterExpense.remainingCredit, 0.01)
+        val expectedRate = (afterExpense.spentAmount / afterExpense.allocatedAmount) * 100.0
+        assertEquals(expectedRate, afterExpense.consumptionRate, 0.01)
+
+        // Verify بطاقة الالتزام (Fiche d'Engagement) transactions for this article
+        val articleTxs = dao.observeTransactionsByArticle(exp2026UtilityId).first()
+        assertTrue(articleTxs.isNotEmpty())
+        assertEquals("BC-2026/777", articleTxs.last().orderNumber)
+        assertEquals(expenseAmount, articleTxs.last().amount, 0.01)
+
+        // 5. Rollback transaction and verify refund
         dao.rollbackExpenseTransaction(txId)
-        val afterRollback = dao.getArticleById(exp2026Id)!!
-        assertEquals(spentBefore, afterRollback.spentAmount, 0.01)
+        val afterRefund = dao.getArticleById(exp2026UtilityId)!!
+        assertEquals(availableBefore, afterRefund.remainingCredit, 0.01)
 
-        // 5. Open a brand-new fiscal year 2027 with startWithZeroCustomAllocations = true
-        val subsidy2027 = dao.applyCateringBudgetTransaction(
+        // 6. Test opening fiscal year 2027 and injecting catering subsidy
+        val expectedSubsidy2027 = (50 * 33_696.00) + (200 * 13_248.00)
+        val returnedSubsidy2027 = dao.applyCateringBudgetTransaction(
             institutionName = "ثانوية العقيد لطفي",
             wilayaName = "مديرية التربية لولاية وهران",
             regime = "داخلي ونصف داخلي",
             fiscalYear = 2027,
-            internalStudents = 60,
-            semiInternalStudents = 220,
+            internalStudents = 50,
+            semiInternalStudents = 200,
             clearExpensesForTargetYear = true,
-            startWithZeroCustomAllocations = true,
+            startWithZeroCustomAllocations = false,
             templateArticlesProvider = BudgetDatabase::buildCleanArticlesForFiscalYear
         )
+        assertEquals(expectedSubsidy2027, returnedSubsidy2027, 0.01)
 
         val exp2027CateringId = Circular13Constants.articleRecordId(2027, Circular13Constants.EXP_CATERING_BASE_ID)
-        val exp2027Catering = dao.getArticleById(exp2027CateringId)!!
-        assertEquals(subsidy2027, exp2027Catering.allocatedAmount, 0.01)
-        assertEquals(0.0, exp2027Catering.spentAmount, 0.01)
-
-        val exp2027CustomId = Circular13Constants.articleRecordId(2027, "EXP_02_01")
-        val exp2027Custom = dao.getArticleById(exp2027CustomId)!!
-        assertEquals(0.0, exp2027Custom.allocatedAmount, 0.01)
-
-        val rev2027CustomId = Circular13Constants.articleRecordId(2027, "REV_01_02")
-        val rev2027Custom = dao.getArticleById(rev2027CustomId)!!
-        assertEquals(0.0, rev2027Custom.allocatedAmount, 0.01)
-
-        // Verify 2026 transactions and spent amounts are still preserved in history
-        val preserved2026 = dao.getArticleById(exp2026Id)!!
-        assertTrue(preserved2026.spentAmount > 0.0)
-        assertTrue(dao.observeTransactionsByYear(2026).first().isNotEmpty())
+        val cateringArticle2027 = dao.getArticleById(exp2027CateringId)!!
+        assertEquals(expectedSubsidy2027, cateringArticle2027.allocatedAmount, 0.01)
+        assertEquals(0.0, cateringArticle2027.spentAmount, 0.01)
+        assertEquals(expectedSubsidy2027, cateringArticle2027.remainingCredit, 0.01)
 
         db.close()
     }

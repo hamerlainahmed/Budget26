@@ -40,12 +40,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.data.ArticleEntity
 import com.example.ui.components.AllocationsMatrixSection
 import com.example.ui.components.Chapter2AuditBanner
 import com.example.ui.components.ChapterDeepDiveSection
+import com.example.ui.components.CommitmentCardModal
 import com.example.ui.components.ExecutiveHeaderCard
 import com.example.ui.components.ExpenseRegistrationModal
 import com.example.ui.components.FiscalYearOnboardingModal
@@ -70,6 +72,7 @@ fun SchoolBudgetDashboardScreen(
     var showFiscalYearWizard by rememberSaveable { mutableStateOf(false) }
     var showExpenseModal by rememberSaveable { mutableStateOf(false) }
     var preselectedExpenseArticle by remember { mutableStateOf<ArticleEntity?>(null) }
+    var selectedArticleForCommitmentCard by remember { mutableStateOf<Pair<ArticleEntity, String>?>(null) }
 
     Scaffold(
         modifier = modifier
@@ -84,17 +87,17 @@ fun SchoolBudgetDashboardScreen(
                     showExpenseModal = true
                 },
                 containerColor = EmeraldStable,
-                contentColor = Color(0xFF042F2E),
+                contentColor = Color(0xFF022C22),
                 icon = {
                     Icon(
                         imageVector = Icons.Default.Add,
-                        contentDescription = "نفقة جديدة"
+                        contentDescription = "سند طلب جديد"
                     )
                 },
                 text = {
                     Text(
-                        text = "حوالة دفع (${uiState.config.fiscalYear})",
-                        style = MaterialTheme.typography.labelLarge
+                        text = "سند طلب جديد (${uiState.config.fiscalYear})",
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
                     )
                 },
                 modifier = Modifier.testTag("fab_new_expense")
@@ -207,7 +210,7 @@ fun SchoolBudgetDashboardScreen(
                     )
                 }
 
-                // 3. Regulatory Audit Warning (شرط الباب 02 - المنشور 13/2026)
+                // 3. Regulatory Audit Warning (شرط الباب 02)
                 item(key = "chapter2_audit_banner") {
                     Chapter2AuditBanner(
                         audit = uiState.chapter2Audit,
@@ -233,24 +236,18 @@ fun SchoolBudgetDashboardScreen(
                         BudgetTab.CHAPTERS_DEEP_DIVE -> {
                             ChapterDeepDiveSection(
                                 expenditureChapters = uiState.expenditureChapters,
-                                revenueChapters = uiState.revenueChapters,
                                 onRegisterExpenseForArticle = { article, _ ->
                                     preselectedExpenseArticle = article
                                     showExpenseModal = true
+                                },
+                                onViewCommitmentCard = { article, chapterName ->
+                                    selectedArticleForCommitmentCard = article to chapterName
                                 },
                                 onUpdateExpenditureAllocation = { articleRecordId, articleName, newAmount ->
                                     viewModel.updateArticleAllocation(
                                         articleRecordId = articleRecordId,
                                         articleName = articleName,
                                         newAmount = newAmount
-                                    )
-                                },
-                                onUpdateRevenueAmounts = { articleRecordId, articleName, newAllocated, newCollected ->
-                                    viewModel.updateRevenueArticleAmounts(
-                                        articleRecordId = articleRecordId,
-                                        articleName = articleName,
-                                        newAllocated = newAllocated,
-                                        newCollected = newCollected
                                     )
                                 },
                                 onGoToCustomizeTab = {
@@ -263,24 +260,12 @@ fun SchoolBudgetDashboardScreen(
                             AllocationsMatrixSection(
                                 fiscalYear = uiState.config.fiscalYear,
                                 expenditureChapters = uiState.expenditureChapters,
-                                revenueChapters = uiState.revenueChapters,
                                 onUpdateAllocation = { articleRecordId, articleName, newAmount ->
                                     viewModel.updateArticleAllocation(
                                         articleRecordId = articleRecordId,
                                         articleName = articleName,
                                         newAmount = newAmount
                                     )
-                                },
-                                onUpdateRevenueAmounts = { articleRecordId, articleName, newAllocated, newCollected ->
-                                    viewModel.updateRevenueArticleAmounts(
-                                        articleRecordId = articleRecordId,
-                                        articleName = articleName,
-                                        newAllocated = newAllocated,
-                                        newCollected = newCollected
-                                    )
-                                },
-                                onZeroOutCustomRevenues = {
-                                    viewModel.zeroOutCustomRevenues()
                                 },
                                 onZeroOutCustomExpenditures = {
                                     viewModel.zeroOutCustomExpenditures()
@@ -331,7 +316,7 @@ fun SchoolBudgetDashboardScreen(
         )
     }
 
-    // Expense Registration Modal
+    // Expense Registration Modal (تحرير سند طلب جديد)
     if (showExpenseModal) {
         ExpenseRegistrationModal(
             expenditureChapters = uiState.expenditureChapters,
@@ -341,7 +326,7 @@ fun SchoolBudgetDashboardScreen(
                 viewModel.addExpense(
                     article = article,
                     chapterName = chapterName,
-                    voucherNumber = voucher,
+                    orderNumber = voucher,
                     supplierName = supplier,
                     description = desc,
                     amount = amount,
@@ -352,7 +337,34 @@ fun SchoolBudgetDashboardScreen(
         )
     }
 
-    // Over-Budget (> 100%) Confirmation Alert Dialog
+    // Commitment Card Modal (بطاقة الالتزام للمادة)
+    if (selectedArticleForCommitmentCard != null) {
+        val (targetArticle, chapterName) = selectedArticleForCommitmentCard!!
+        // Look up up-to-date article record from uiState
+        val liveArticle = uiState.expenditureChapters
+            .flatMap { it.articles }
+            .find { it.id == targetArticle.id } ?: targetArticle
+
+        val articleTransactions = remember(uiState.transactions, targetArticle.id) {
+            uiState.transactions.filter { it.articleId == targetArticle.id }
+        }
+
+        CommitmentCardModal(
+            article = liveArticle,
+            chapterOfficialName = chapterName,
+            institutionName = uiState.config.institutionName,
+            fiscalYear = uiState.config.fiscalYear,
+            transactions = articleTransactions,
+            onDismiss = { selectedArticleForCommitmentCard = null },
+            onAddNewOrder = {
+                preselectedExpenseArticle = liveArticle
+                selectedArticleForCommitmentCard = null
+                showExpenseModal = true
+            }
+        )
+    }
+
+    // Over-Budget Alert Dialog
     if (overBudgetWarning != null) {
         OverBudgetAlertDialog(
             warning = overBudgetWarning!!,

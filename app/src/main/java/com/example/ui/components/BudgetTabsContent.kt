@@ -24,21 +24,19 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.ReceiptLong
 import androidx.compose.material.icons.filled.RestartAlt
-import androidx.compose.material.icons.filled.Restore
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -69,7 +67,6 @@ import androidx.compose.ui.unit.dp
 import com.example.data.ArticleEntity
 import com.example.data.ChapterWithArticles
 import com.example.data.Circular13Constants
-import com.example.data.SectionType
 import com.example.data.TransactionEntity
 import com.example.ui.BudgetTab
 import com.example.ui.formatDzdCurrency
@@ -80,8 +77,8 @@ import com.example.ui.healthColor
 import com.example.ui.healthStatusLabelAr
 import com.example.ui.theme.AmberElevated
 import com.example.ui.theme.CrimsonCritical
+import com.example.ui.theme.DarkTextPrimary
 import com.example.ui.theme.EmeraldStable
-import kotlin.math.abs
 
 @Composable
 fun SegmentedBudgetTabsBar(
@@ -95,8 +92,8 @@ fun SegmentedBudgetTabsBar(
             .fillMaxWidth()
             .testTag("segmented_tabs_bar"),
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Row(
             modifier = Modifier
@@ -121,17 +118,18 @@ fun SegmentedBudgetTabsBar(
                     },
                     modifier = Modifier
                         .weight(1f)
-                        .clip(RoundedCornerShape(12.dp))
                         .clickable { onSelectTab(tab) }
-                        .testTag("tab_${tab.name.lowercase()}")
+                        .testTag("tab_button_${tab.name}")
                 ) {
                     Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.padding(vertical = 10.dp, horizontal = 6.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 10.dp, horizontal = 4.dp),
+                        contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = label,
-                            style = MaterialTheme.typography.labelLarge.copy(
+                            style = MaterialTheme.typography.labelMedium.copy(
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
                             ),
                             color = if (isSelected) {
@@ -149,26 +147,27 @@ fun SegmentedBudgetTabsBar(
     }
 }
 
+/**
+ * Tab 1: مدونة الأبواب والمواد (نفقات فقط حسب مدونة 2024 الرسمية)
+ */
 @Composable
 fun ChapterDeepDiveSection(
     expenditureChapters: List<ChapterWithArticles>,
-    revenueChapters: List<ChapterWithArticles>,
     onRegisterExpenseForArticle: (ArticleEntity, String) -> Unit,
+    onViewCommitmentCard: (ArticleEntity, String) -> Unit,
     onUpdateExpenditureAllocation: (articleRecordId: String, articleName: String, newAmount: Double) -> Unit,
-    onUpdateRevenueAmounts: (articleRecordId: String, articleName: String, newAllocated: Double, newCollected: Double) -> Unit,
     onGoToCustomizeTab: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var showRevenuesAlso by rememberSaveable { mutableStateOf(true) }
     var editingArticleId by rememberSaveable { mutableStateOf<String?>(null) }
     var editingAllocatedText by rememberSaveable { mutableStateOf("") }
-    var editingCollectedText by rememberSaveable { mutableStateOf("") }
 
     val expandedState = remember {
         mutableStateMapOf<String, Boolean>().apply {
             put(Circular13Constants.EXP_CHAPTER_2_BASE_ID, true)
             put(Circular13Constants.EXP_CHAPTER_6_BASE_ID, true)
-            put("REV_CH01", true)
+            put("EXP_CH01", true)
+            put("EXP_CH03", true)
         }
     }
 
@@ -185,93 +184,30 @@ fun ChapterDeepDiveSection(
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "مدونة الأبواب والمواد (المنشور 29/2018)",
-                    style = MaterialTheme.typography.titleMedium,
+                    text = "مدونة أبواب ومواد النفقات",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onBackground
                 )
                 Text(
-                    text = "اضغط «تخصيص الإيراد» أو «تخصيص الاعتماد» أمام أي مادة لتعديل مبالغها مباشرة",
+                    text = "متابعة استهلاك الاعتماد واقتطاع النفقات لكل مادة لحظة بلحظة",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
 
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                FilterChip(
-                    selected = showRevenuesAlso,
-                    onClick = { showRevenuesAlso = !showRevenuesAlso },
-                    label = {
-                        Text(
-                            text = if (showRevenuesAlso) "إخفاء الإيرادات" else "عرض الإيرادات",
-                            style = MaterialTheme.typography.labelMedium
-                        )
-                    },
-                    modifier = Modifier.testTag("toggle_revenues_visibility_chip")
+            OutlinedButton(
+                onClick = onGoToCustomizeTab,
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.testTag("quick_goto_customize_tab_btn")
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp)
                 )
-
-                OutlinedButton(
-                    onClick = onGoToCustomizeTab,
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.testTag("quick_goto_customize_tab_btn")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = null,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("جدول التخصيص", style = MaterialTheme.typography.labelMedium)
-                }
-            }
-        }
-
-        AnimatedVisibility(visible = showRevenuesAlso) {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Surface(
-                    shape = RoundedCornerShape(12.dp),
-                    color = Color(0xFF0EA5E9).copy(alpha = 0.12f),
-                    border = BorderStroke(1.dp, Color(0xFF0EA5E9).copy(alpha = 0.35f)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = "العنوان الأول: الإيرادات (الأبواب 01 - 09 • يمكنك تخصيص الإيراد المقدر والمحصّل لكل مادة)",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = Color(0xFF0EA5E9),
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
-                    )
-                }
-
-                revenueChapters.forEach { chapterWithArticles ->
-                    val isExpanded = expandedState[chapterWithArticles.chapter.id] ?: false
-                    ExecutiveChapterCard(
-                        chapterWithArticles = chapterWithArticles,
-                        isExpanded = isExpanded,
-                        editingArticleId = editingArticleId,
-                        editingAllocatedText = editingAllocatedText,
-                        editingCollectedText = editingCollectedText,
-                        onToggleExpand = {
-                            expandedState[chapterWithArticles.chapter.id] = !isExpanded
-                        },
-                        onStartInlineEdit = { article ->
-                            editingArticleId = article.id
-                            editingAllocatedText = article.allocatedAmount.toLong().toString()
-                            editingCollectedText = article.spentAmount.toLong().toString()
-                        },
-                        onAllocatedTextChange = { editingAllocatedText = it },
-                        onCollectedTextChange = { editingCollectedText = it },
-                        onSaveInlineEdit = { article ->
-                            val parsedAlloc = editingAllocatedText.replace(",", "").toDoubleOrNull()
-                            if (parsedAlloc != null && parsedAlloc >= 0.0) {
-                                val parsedColl = editingCollectedText.replace(",", "").toDoubleOrNull() ?: parsedAlloc
-                                onUpdateRevenueAmounts(article.id, article.name, parsedAlloc, parsedColl.coerceAtLeast(0.0))
-                                editingArticleId = null
-                            }
-                        },
-                        onCancelInlineEdit = { editingArticleId = null },
-                        onRegisterExpenseForArticle = onRegisterExpenseForArticle
-                    )
-                }
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("حجز الاعتمادات", style = MaterialTheme.typography.labelMedium)
             }
         }
 
@@ -287,7 +223,7 @@ fun ChapterDeepDiveSection(
             ) {
                 Text(
                     text = branchTitle,
-                    style = MaterialTheme.typography.labelLarge,
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
                     color = EmeraldStable,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
                 )
@@ -300,26 +236,24 @@ fun ChapterDeepDiveSection(
                     isExpanded = isExpanded,
                     editingArticleId = editingArticleId,
                     editingAllocatedText = editingAllocatedText,
-                    editingCollectedText = editingCollectedText,
                     onToggleExpand = {
                         expandedState[chapterWithArticles.chapter.id] = !isExpanded
                     },
                     onStartInlineEdit = { article ->
                         editingArticleId = article.id
                         editingAllocatedText = article.allocatedAmount.toLong().toString()
-                        editingCollectedText = article.spentAmount.toLong().toString()
                     },
                     onAllocatedTextChange = { editingAllocatedText = it },
-                    onCollectedTextChange = { editingCollectedText = it },
                     onSaveInlineEdit = { article ->
-                        val parsedAlloc = editingAllocatedText.replace(",", "").toDoubleOrNull()
-                        if (parsedAlloc != null && parsedAlloc >= 0.0) {
-                            onUpdateExpenditureAllocation(article.id, article.name, parsedAlloc)
+                        val parsed = editingAllocatedText.replace(",", "").toDoubleOrNull()
+                        if (parsed != null && parsed >= 0.0) {
+                            onUpdateExpenditureAllocation(article.id, article.name, parsed)
                             editingArticleId = null
                         }
                     },
                     onCancelInlineEdit = { editingArticleId = null },
-                    onRegisterExpenseForArticle = onRegisterExpenseForArticle
+                    onRegisterExpenseForArticle = onRegisterExpenseForArticle,
+                    onViewCommitmentCard = onViewCommitmentCard
                 )
             }
         }
@@ -332,176 +266,193 @@ private fun ExecutiveChapterCard(
     isExpanded: Boolean,
     editingArticleId: String?,
     editingAllocatedText: String,
-    editingCollectedText: String,
     onToggleExpand: () -> Unit,
     onStartInlineEdit: (ArticleEntity) -> Unit,
     onAllocatedTextChange: (String) -> Unit,
-    onCollectedTextChange: (String) -> Unit,
     onSaveInlineEdit: (ArticleEntity) -> Unit,
     onCancelInlineEdit: () -> Unit,
-    onRegisterExpenseForArticle: (ArticleEntity, String) -> Unit
+    onRegisterExpenseForArticle: (ArticleEntity, String) -> Unit,
+    onViewCommitmentCard: (ArticleEntity, String) -> Unit,
+    modifier: Modifier = Modifier
 ) {
     val chapter = chapterWithArticles.chapter
-    val isRevenue = chapter.sectionType == SectionType.REVENUE.name
-    val statusColor = if (isRevenue) Color(0xFF0EA5E9) else healthColor(chapterWithArticles.healthStatus)
-    val animatedProgress by animateFloatAsState(
-        targetValue = (chapterWithArticles.consumptionRate.toFloat() / 100f).coerceIn(0f, 1f),
-        animationSpec = tween(durationMillis = 650),
-        label = "chapterProgress_${chapter.id}"
-    )
-    val paddedChapterNum = chapter.chapterNumber.toString().padStart(2, '0')
+    val statusColor = healthColor(chapterWithArticles.healthStatus)
 
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .testTag("chapter_card_${chapter.id}"),
-        shape = RoundedCornerShape(18.dp),
+            .testTag("executive_chapter_card_${chapter.id}"),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        border = BorderStroke(1.dp, statusColor.copy(alpha = 0.3f)),
+        border = BorderStroke(
+            1.dp,
+            if (isExpanded) statusColor.copy(alpha = 0.45f)
+            else MaterialTheme.colorScheme.outlineVariant
+        ),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            Column(
+            // Chapter Header Row
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { onToggleExpand() }
-                    .padding(14.dp)
+                    .padding(14.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Top
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f)
+                    Surface(
+                        shape = RoundedCornerShape(10.dp),
+                        color = statusColor.copy(alpha = 0.16f),
+                        border = BorderStroke(1.dp, statusColor.copy(alpha = 0.45f)),
+                        modifier = Modifier.size(38.dp)
                     ) {
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = statusColor.copy(alpha = 0.15f),
-                            border = BorderStroke(1.dp, statusColor.copy(alpha = 0.4f)),
-                            modifier = Modifier.size(42.dp)
-                        ) {
-                            Box(contentAlignment = Alignment.Center) {
-                                Text(
-                                    text = paddedChapterNum,
-                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = statusColor
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.width(10.dp))
-
-                        Column(modifier = Modifier.weight(1f)) {
+                        Box(contentAlignment = Alignment.Center) {
                             Text(
-                                text = "${chapter.officialCode}: ${chapter.name}",
+                                text = chapter.chapterNumber.toString().padStart(2, '0'),
                                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = chapter.description,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis
+                                color = statusColor
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.width(8.dp))
+                    Spacer(modifier = Modifier.width(10.dp))
 
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Surface(
-                            shape = RoundedCornerShape(50),
-                            color = statusColor.copy(alpha = 0.14f)
-                        ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = if (isRevenue) {
-                                    "إيراد (${chapterWithArticles.articles.size} مواد)"
-                                } else {
-                                    "${formatPercentage(chapterWithArticles.consumptionRate)} • ${healthStatusLabelAr(chapterWithArticles.healthStatus)}"
-                                },
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                color = statusColor,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                text = "${chapter.officialCode}: ${chapter.name}",
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
 
-                        Icon(
-                            imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                            contentDescription = if (isExpanded) "طي الباب" else "توسيع الباب",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(start = 4.dp)
+                        Text(
+                            text = "${chapterWithArticles.articles.size} مواد • الاعتماد: ${formatDzdWhole(chapterWithArticles.totalAllocated)} • المصروف: ${formatDzdWhole(chapterWithArticles.totalSpent)}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = statusColor.copy(alpha = 0.14f),
+                        border = BorderStroke(1.dp, statusColor.copy(alpha = 0.35f))
+                    ) {
+                        Text(
+                            text = formatPercentage(chapterWithArticles.consumptionRate),
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                            color = statusColor,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    ChapterMetricColumn(
-                        label = if (isRevenue) "الإيراد المقدر" else "الاعتماد المفتوح",
-                        value = formatDzdCurrency(chapterWithArticles.totalAllocated),
-                        valueColor = MaterialTheme.colorScheme.onSurface
-                    )
-                    ChapterMetricColumn(
-                        label = if (isRevenue) "المحصل فعلياً" else "النفقات المسددة",
-                        value = formatDzdCurrency(chapterWithArticles.totalSpent),
-                        valueColor = statusColor
-                    )
-                    ChapterMetricColumn(
-                        label = if (isRevenue) "الباقي للتحصيل" else "الرصيد المتبقي",
-                        value = formatDzdCurrency(chapterWithArticles.remainingCredit),
-                        valueColor = if (chapterWithArticles.remainingCredit >= 0) EmeraldStable else CrimsonCritical
-                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+
+                    IconButton(onClick = onToggleExpand, modifier = Modifier.size(32.dp)) {
+                        Icon(
+                            imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = if (isExpanded) "طي" else "توسيع",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                LinearProgressIndicator(
-                    progress = { animatedProgress },
-                    color = statusColor,
-                    trackColor = statusColor.copy(alpha = 0.14f),
-                    strokeCap = StrokeCap.Round,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(6.dp)
-                        .clip(RoundedCornerShape(50))
-                )
             }
 
+            // Expanded Chapter Content
             AnimatedVisibility(visible = isExpanded) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.35f))
-                        .padding(horizontal = 12.dp, vertical = 10.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                        .padding(start = 14.dp, end = 14.dp, bottom = 14.dp),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+
+                    // 3 KPI summary metrics for Chapter
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        MiniKpiBox(
+                            label = "الاعتماد المفتوح",
+                            amount = formatDzdWhole(chapterWithArticles.totalAllocated),
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.weight(1f)
+                        )
+                        MiniKpiBox(
+                            label = "النفقات المسددة",
+                            amount = formatDzdWhole(chapterWithArticles.totalSpent),
+                            color = AmberElevated,
+                            modifier = Modifier.weight(1f)
+                        )
+                        MiniKpiBox(
+                            label = "الرصيد المتبقي",
+                            amount = formatDzdWhole(chapterWithArticles.remainingCredit),
+                            color = if (chapterWithArticles.remainingCredit >= 0) EmeraldStable else CrimsonCritical,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    // Chapter Consumption Progress Bar
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "نسبة استهلاك اعتماد الباب:",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "${formatPercentage(chapterWithArticles.consumptionRate)} (${healthStatusLabelAr(chapterWithArticles.healthStatus)})",
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                color = statusColor
+                            )
+                        }
+
+                        LinearProgressIndicator(
+                            progress = { (chapterWithArticles.consumptionRate.toFloat() / 100f).coerceIn(0f, 1f) },
+                            color = statusColor,
+                            trackColor = statusColor.copy(alpha = 0.15f),
+                            strokeCap = StrokeCap.Round,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(6.dp)
+                                .clip(RoundedCornerShape(50))
+                        )
+                    }
+
+                    // Articles list inside this Chapter
                     chapterWithArticles.articles.forEach { article ->
-                        val isEditingThis = editingArticleId == article.id
-                        ArticleDeepDiveRow(
+                        val isEditing = editingArticleId == article.id
+                        ArticleRowCard(
                             article = article,
-                            isRevenue = isRevenue,
-                            isEditing = isEditingThis,
-                            editingAllocatedText = if (isEditingThis) editingAllocatedText else "",
-                            editingCollectedText = if (isEditingThis) editingCollectedText else "",
+                            chapterOfficialName = "${chapter.officialCode}: ${chapter.name}",
+                            isEditing = isEditing,
+                            editingAllocatedText = editingAllocatedText,
                             onStartCustomize = { onStartInlineEdit(article) },
                             onAllocatedTextChange = onAllocatedTextChange,
-                            onCollectedTextChange = onCollectedTextChange,
                             onSaveCustomize = { onSaveInlineEdit(article) },
                             onCancelCustomize = onCancelInlineEdit,
-                            onQuickSpend = {
-                                onRegisterExpenseForArticle(
-                                    article,
-                                    "${chapter.officialCode}: ${chapter.name}"
-                                )
+                            onRegisterExpense = {
+                                onRegisterExpenseForArticle(article, "${chapter.officialCode}: ${chapter.name}")
+                            },
+                            onViewCommitmentCard = {
+                                onViewCommitmentCard(article, "${chapter.officialCode}: ${chapter.name}")
                             }
                         )
                     }
@@ -512,164 +463,159 @@ private fun ExecutiveChapterCard(
 }
 
 @Composable
-private fun ChapterMetricColumn(
+private fun MiniKpiBox(
     label: String,
-    value: String,
-    valueColor: Color
+    amount: String,
+    color: Color,
+    modifier: Modifier = Modifier
 ) {
-    Column {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-            color = valueColor
-        )
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = color.copy(alpha = 0.08f),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.25f)),
+        modifier = modifier
+    ) {
+        Column(
+            modifier = Modifier.padding(8.dp),
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = amount,
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                color = color,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
     }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ArticleDeepDiveRow(
+private fun ArticleRowCard(
     article: ArticleEntity,
-    isRevenue: Boolean,
+    chapterOfficialName: String,
     isEditing: Boolean,
     editingAllocatedText: String,
-    editingCollectedText: String,
     onStartCustomize: () -> Unit,
     onAllocatedTextChange: (String) -> Unit,
-    onCollectedTextChange: (String) -> Unit,
     onSaveCustomize: () -> Unit,
     onCancelCustomize: () -> Unit,
-    onQuickSpend: () -> Unit
+    onRegisterExpense: () -> Unit,
+    onViewCommitmentCard: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    val statusColor = if (isRevenue) Color(0xFF0EA5E9) else healthColor(article.healthStatus)
+    val statusColor = healthColor(article.healthStatus)
     val animatedBar by animateFloatAsState(
         targetValue = (article.consumptionRate.toFloat() / 100f).coerceIn(0f, 1f),
-        animationSpec = tween(500),
-        label = "articleBar_${article.id}"
+        animationSpec = tween(durationMillis = 650),
+        label = "articleBar"
     )
-    val paddedArtNum = article.articleNumber.toString().padStart(2, '0')
 
     Surface(
-        shape = RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
         border = BorderStroke(
-            width = if (isEditing) 1.5.dp else 1.dp,
-            color = when {
-                isEditing -> statusColor
-                article.isAutoCatering -> AmberElevated.copy(alpha = 0.6f)
-                else -> MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
-            }
+            1.dp,
+            if (isEditing) statusColor else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
         ),
-        modifier = Modifier
-            .fillMaxWidth()
-            .testTag("article_row_${article.baseArticleId}")
+        modifier = modifier.fillMaxWidth()
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp)
+                .padding(10.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Top
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = statusColor.copy(alpha = 0.14f)
-                    ) {
-                        Text(
-                            text = article.officialCode,
-                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                            color = statusColor,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = "المادة $paddedArtNum: ${article.name}",
-                            style = MaterialTheme.typography.titleSmall,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        if (article.isAutoCatering) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.AutoAwesome,
-                                    contentDescription = null,
-                                    tint = AmberElevated,
-                                    modifier = Modifier.size(13.dp)
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "يحسب تلقائياً بموجب المنشور 13/2026 (قابل للتخصيص أيضاً)",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = AmberElevated
-                                )
-                            }
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Surface(
+                            shape = RoundedCornerShape(6.dp),
+                            color = statusColor.copy(alpha = 0.15f),
+                            border = BorderStroke(1.dp, statusColor.copy(alpha = 0.4f))
+                        ) {
+                            Text(
+                                text = article.officialCode,
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                color = statusColor,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
                         }
+
+                        Spacer(modifier = Modifier.width(6.dp))
+
+                        Text(
+                            text = article.name,
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    if (article.description.isNotBlank()) {
+                        Text(
+                            text = article.description,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
                     }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(
+                        onClick = onViewCommitmentCard,
+                        modifier = Modifier
+                            .size(32.dp)
+                            .testTag("article_commitment_card_btn_${article.baseArticleId}")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ReceiptLong,
+                            contentDescription = "بطاقة الالتزام",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(17.dp)
+                        )
+                    }
 
-            // Action Buttons Row: Customize Revenue / Customize Allocation + Spend Expense
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedButton(
-                    onClick = {
-                        if (isEditing) onCancelCustomize() else onStartCustomize()
-                    },
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                    shape = RoundedCornerShape(10.dp),
-                    border = BorderStroke(1.dp, statusColor.copy(alpha = 0.55f)),
-                    modifier = Modifier.testTag("customize_article_btn_${article.baseArticleId}")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = null,
-                        tint = statusColor,
-                        modifier = Modifier.size(15.dp)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = if (isRevenue) "تخصيص الإيراد" else "تخصيص الاعتماد",
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                        color = statusColor
-                    )
-                }
+                    IconButton(
+                        onClick = onStartCustomize,
+                        modifier = Modifier
+                            .size(32.dp)
+                            .testTag("inline_edit_alloc_btn_${article.baseArticleId}")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "حجز / تعديل الاعتماد",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
 
-                if (!isRevenue) {
-                    Spacer(modifier = Modifier.width(8.dp))
-                    TextButton(
-                        onClick = onQuickSpend,
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                        modifier = Modifier.testTag("spend_from_article_${article.baseArticleId}")
+                    IconButton(
+                        onClick = onRegisterExpense,
+                        modifier = Modifier
+                            .size(32.dp)
+                            .testTag("article_quick_expense_btn_${article.baseArticleId}")
                     ) {
                         Icon(
                             imageVector = Icons.Default.Add,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "صرف نفقة",
-                            style = MaterialTheme.typography.labelLarge
+                            contentDescription = "تحرير سند طلب للمادة",
+                            tint = EmeraldStable,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
@@ -677,26 +623,25 @@ private fun ArticleDeepDiveRow(
 
             Spacer(modifier = Modifier.height(6.dp))
 
+            // Article metrics row: Allocated, Spent, Remaining
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = if (isRevenue) "المقدر: ${formatDzdCurrency(article.allocatedAmount)}"
-                    else "المعتمد: ${formatDzdCurrency(article.allocatedAmount)}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    text = "الاعتماد: ${formatDzdWhole(article.allocatedAmount)}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = if (isRevenue) "المحصّل: ${formatDzdCurrency(article.spentAmount)}"
-                    else "المصروف: ${formatDzdCurrency(article.spentAmount)}",
-                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
-                    color = statusColor
+                    text = "المصروف: ${formatDzdWhole(article.spentAmount)}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = AmberElevated
                 )
                 Text(
-                    text = if (isRevenue) "باقي التحصيل: ${formatDzdCurrency(article.remainingCredit)}"
-                    else "المتبقي: ${formatDzdCurrency(article.remainingCredit)}",
-                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                    text = "المتبقي: ${formatDzdWhole(article.remainingCredit)}",
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                     color = if (article.remainingCredit >= 0) EmeraldStable else CrimsonCritical
                 )
             }
@@ -725,7 +670,43 @@ private fun ArticleDeepDiveRow(
                 )
             }
 
-            // Inline Expandable Editor for Customizing Revenue or Expenditure Allocation directly in Tab 1
+            // Quick bottom row: Direct link to بطاقة الالتزام
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TextButton(
+                    onClick = onViewCommitmentCard,
+                    contentPadding = PaddingValues(horizontal = 4.dp, vertical = 2.dp),
+                    modifier = Modifier.testTag("article_view_fiche_btn_${article.baseArticleId}")
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ReceiptLong,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "الإطلاع على بطاقة الالتزام",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+
+                if (article.isAutoCatering) {
+                    Text(
+                        text = "مخصص آلي (المنشور 13/2026)",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = EmeraldStable
+                    )
+                }
+            }
+
+            // Inline Editor for Customizing Expenditure Allocation directly
             AnimatedVisibility(visible = isEditing) {
                 Column(
                     modifier = Modifier
@@ -740,33 +721,13 @@ private fun ArticleDeepDiveRow(
                         onValueChange = { input ->
                             onAllocatedTextChange(input.filter { it.isDigit() || it == '.' })
                         },
-                        label = {
-                            Text(
-                                if (isRevenue) "الإيراد المقدر / المفتوح للسنة (د.ج)"
-                                else "الاعتماد المفتوح / المرخص للمادة (د.ج)"
-                            )
-                        },
+                        label = { Text("الاعتماد المفتوح المحجوز للمادة (د.ج)") },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("deep_dive_alloc_input_${article.baseArticleId}")
                     )
-
-                    if (isRevenue) {
-                        OutlinedTextField(
-                            value = editingCollectedText,
-                            onValueChange = { input ->
-                                onCollectedTextChange(input.filter { it.isDigit() || it == '.' })
-                            },
-                            label = { Text("الإيراد المحصّل فعلياً حتى الآن (د.ج)") },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("deep_dive_collected_input_${article.baseArticleId}")
-                        )
-                    }
 
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -776,9 +737,7 @@ private fun ArticleDeepDiveRow(
                         OutlinedButton(
                             onClick = {
                                 val current = editingAllocatedText.toDoubleOrNull() ?: article.allocatedAmount
-                                val next = (current + 50_000).toLong().toString()
-                                onAllocatedTextChange(next)
-                                if (isRevenue) onCollectedTextChange(next)
+                                onAllocatedTextChange((current + 50_000).toLong().toString())
                             },
                             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
                         ) {
@@ -788,9 +747,7 @@ private fun ArticleDeepDiveRow(
                         OutlinedButton(
                             onClick = {
                                 val current = editingAllocatedText.toDoubleOrNull() ?: article.allocatedAmount
-                                val next = (current + 100_000).toLong().toString()
-                                onAllocatedTextChange(next)
-                                if (isRevenue) onCollectedTextChange(next)
+                                onAllocatedTextChange((current + 100_000).toLong().toString())
                             },
                             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
                         ) {
@@ -800,22 +757,10 @@ private fun ArticleDeepDiveRow(
                         OutlinedButton(
                             onClick = {
                                 onAllocatedTextChange("0")
-                                if (isRevenue) onCollectedTextChange("0")
                             },
                             contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
                         ) {
                             Text("تصفير (0)", style = MaterialTheme.typography.labelSmall)
-                        }
-
-                        if (isRevenue) {
-                            OutlinedButton(
-                                onClick = {
-                                    onCollectedTextChange(editingAllocatedText)
-                                },
-                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
-                            ) {
-                                Text("تحصيل 100% من المقدر", style = MaterialTheme.typography.labelSmall)
-                            }
                         }
                     }
 
@@ -840,7 +785,7 @@ private fun ArticleDeepDiveRow(
                                 modifier = Modifier.size(16.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text(if (isRevenue) "حفظ الإيراد" else "حفظ الاعتماد")
+                            Text("حفظ الاعتماد")
                         }
                     }
                 }
@@ -849,71 +794,40 @@ private fun ArticleDeepDiveRow(
     }
 }
 
-private enum class MatrixSectionFilter(val labelAr: String) {
-    ALL("الكل (الإيرادات + النفقات)"),
-    REVENUES_ONLY("العنوان 1: الإيرادات (9 أبواب)"),
-    EXPENDITURES_ONLY("العنوان 2: النفقات (17 باباً)")
-}
-
 /**
- * Tab 2: تخصيص الإيرادات واعتمادات النفقات (Budget Revenues & Allocations Customization Studio)
+ * Tab 2: حجز الاعتمادات (Credit Allocation Studio for the Authorizing Officer)
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun AllocationsMatrixSection(
     fiscalYear: Int,
     expenditureChapters: List<ChapterWithArticles>,
-    revenueChapters: List<ChapterWithArticles>,
     onUpdateAllocation: (articleRecordId: String, articleName: String, newAmount: Double) -> Unit,
-    onUpdateRevenueAmounts: (articleRecordId: String, articleName: String, newAllocated: Double, newCollected: Double) -> Unit,
-    onZeroOutCustomRevenues: () -> Unit,
     onZeroOutCustomExpenditures: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var sectionFilter by rememberSaveable { mutableStateOf(MatrixSectionFilter.ALL) }
     var filterQuery by rememberSaveable { mutableStateOf("") }
     var editingArticleId by rememberSaveable { mutableStateOf<String?>(null) }
     var editingAmountText by rememberSaveable { mutableStateOf("") }
-    var editingCollectedText by rememberSaveable { mutableStateOf("") }
 
-    val totalRevenuesAllocated = remember(revenueChapters) {
-        revenueChapters.sumOf { it.totalAllocated }
-    }
-    val totalRevenuesCollected = remember(revenueChapters) {
-        revenueChapters.sumOf { it.totalSpent }
-    }
     val totalExpendituresAllocated = remember(expenditureChapters) {
         expenditureChapters.sumOf { it.totalAllocated }
     }
-    val budgetBalanceDiff = totalRevenuesAllocated - totalExpendituresAllocated
-    val isBalanced = abs(budgetBalanceDiff) < 1.0
 
-    val chaptersToShow = remember(sectionFilter, filterQuery, revenueChapters, expenditureChapters) {
-        val baseList = when (sectionFilter) {
-            MatrixSectionFilter.ALL -> revenueChapters + expenditureChapters
-            MatrixSectionFilter.REVENUES_ONLY -> revenueChapters
-            MatrixSectionFilter.EXPENDITURES_ONLY -> expenditureChapters
-        }
+    val chaptersToShow = remember(filterQuery, expenditureChapters) {
         if (filterQuery.isBlank()) {
-            baseList
+            expenditureChapters
         } else {
             val q = filterQuery.trim()
-            baseList.mapNotNull { chWithArts ->
-                val chapterMatches = chWithArts.chapter.name.contains(q, ignoreCase = true) ||
-                    chWithArts.chapter.officialCode.contains(q, ignoreCase = true)
-                if (chapterMatches) {
-                    chWithArts
-                } else {
-                    val matchingArticles = chWithArts.articles.filter { art ->
-                        art.name.contains(q, ignoreCase = true) ||
-                            art.officialCode.contains(q, ignoreCase = true)
-                    }
-                    if (matchingArticles.isNotEmpty()) {
-                        chWithArts.copy(articles = matchingArticles)
-                    } else {
-                        null
-                    }
+            expenditureChapters.mapNotNull { ch ->
+                val matchingArticles = ch.articles.filter { art ->
+                    art.name.contains(q, ignoreCase = true) ||
+                        art.officialCode.contains(q, ignoreCase = true) ||
+                        art.description.contains(q, ignoreCase = true)
                 }
+                if (matchingArticles.isNotEmpty() || ch.chapter.name.contains(q, ignoreCase = true)) {
+                    ch.copy(articles = if (matchingArticles.isNotEmpty()) matchingArticles else ch.articles)
+                } else null
             }
         }
     }
@@ -924,23 +838,12 @@ fun AllocationsMatrixSection(
             .testTag("allocations_matrix_section"),
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        // 1. Live Budget Equilibrium Card (توازن الإيرادات واعتمادات النفقات)
+        // Studio Executive Summary Header
         Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag("budget_equilibrium_card"),
+            modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(18.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            ),
-            border = BorderStroke(
-                width = 1.dp,
-                color = when {
-                    isBalanced -> EmeraldStable.copy(alpha = 0.5f)
-                    budgetBalanceDiff > 0 -> Color(0xFF0EA5E9).copy(alpha = 0.5f)
-                    else -> CrimsonCritical.copy(alpha = 0.6f)
-                }
-            )
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
         ) {
             Column(
                 modifier = Modifier
@@ -953,126 +856,16 @@ fun AllocationsMatrixSection(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.AccountBalanceWallet,
-                            contentDescription = null,
-                            tint = Color(0xFF0EA5E9),
-                            modifier = Modifier.size(20.dp)
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "ميزان تخصيص الميزانية لسنة $fiscalYear (الإيرادات ⇄ النفقات)",
-                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                            text = "جدول حجز اعتمادات نفقات السنة المالية $fiscalYear",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                    }
-
-                    Surface(
-                        shape = RoundedCornerShape(50),
-                        color = when {
-                            isBalanced -> EmeraldStable.copy(alpha = 0.16f)
-                            budgetBalanceDiff > 0 -> Color(0xFF0EA5E9).copy(alpha = 0.16f)
-                            else -> CrimsonCritical.copy(alpha = 0.16f)
-                        }
-                    ) {
                         Text(
-                            text = when {
-                                isBalanced -> "ميزانية متوازنة 100%"
-                                budgetBalanceDiff > 0 -> "فائض إيرادات للتوزيع"
-                                else -> "الاعتمادات تفوق الإيرادات"
-                            },
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                            color = when {
-                                isBalanced -> EmeraldStable
-                                budgetBalanceDiff > 0 -> Color(0xFF0EA5E9)
-                                else -> CrimsonCritical
-                            },
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                        )
-                    }
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column {
-                        Text(
-                            text = "إجمالي الإيرادات (العنوان 1)",
+                            text = "يحجز الآمر بالصرف الاعتمادات المفتوحة لكل مادة لضبط ومتابعة سقف الصرف",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = formatDzdCurrency(totalRevenuesAllocated),
-                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                            color = Color(0xFF0EA5E9)
-                        )
-                        Text(
-                            text = "المحصّل: ${formatDzdWhole(totalRevenuesCollected)}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    Column {
-                        Text(
-                            text = "اعتمادات النفقات (العنوان 2)",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = formatDzdCurrency(totalExpendituresAllocated),
-                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                            color = EmeraldStable
-                        )
-                    }
-
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text(
-                            text = if (budgetBalanceDiff >= 0) "رصيد إيرادات غير موزع" else "عجز التوازن",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = formatDzdCurrency(abs(budgetBalanceDiff)),
-                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                            color = when {
-                                isBalanced -> EmeraldStable
-                                budgetBalanceDiff > 0 -> AmberElevated
-                                else -> CrimsonCritical
-                            }
-                        )
-                    }
-                }
-
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f))
-
-                // Quick Bulk Reset / Manual Customization Buttons
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlinedButton(
-                        onClick = onZeroOutCustomRevenues,
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier
-                            .weight(1f)
-                            .testTag("zero_out_revenues_btn")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.RestartAlt,
-                            contentDescription = null,
-                            tint = Color(0xFF0EA5E9),
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "تصفير الإيرادات لتخصيصها يدوياً",
-                            style = MaterialTheme.typography.labelSmall,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
                         )
                     }
 
@@ -1080,9 +873,8 @@ fun AllocationsMatrixSection(
                         onClick = onZeroOutCustomExpenditures,
                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
                         shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier
-                            .weight(1f)
-                            .testTag("zero_out_expenditures_btn")
+                        border = BorderStroke(1.dp, AmberElevated),
+                        modifier = Modifier.testTag("zero_out_expenditures_btn")
                     ) {
                         Icon(
                             imageVector = Icons.Default.RestartAlt,
@@ -1092,79 +884,66 @@ fun AllocationsMatrixSection(
                         )
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = "تصفير اعتمادات النفقات يدوياً",
-                            style = MaterialTheme.typography.labelSmall,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            text = "تصفير الاعتمادات",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = AmberElevated
+                        )
+                    }
+                }
+
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "مجموع الاعتمادات المحجوزة في الميزانية:",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = formatDzdCurrency(totalExpendituresAllocated),
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.testTag("matrix_total_allocated_text")
                         )
                     }
                 }
             }
         }
 
-        // 2. Section Filter Chips (الكل / الإيرادات / النفقات) + Search Field
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            MatrixSectionFilter.entries.forEach { filter ->
-                FilterChip(
-                    selected = sectionFilter == filter,
-                    onClick = { sectionFilter = filter },
-                    label = {
-                        Text(
-                            text = filter.labelAr,
-                            style = MaterialTheme.typography.labelMedium
-                        )
-                    },
-                    modifier = Modifier.testTag("matrix_filter_${filter.name.lowercase()}")
-                )
-            }
-        }
-
+        // Live Search Input inside Allocations Matrix
         OutlinedTextField(
             value = filterQuery,
             onValueChange = { filterQuery = it },
-            placeholder = { Text("ابحث عن باب أو مادة لتخصيص إيرادها أو اعتمادها (مثال: الباب 02، الإطعام، ب04/م01)...") },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = "بحث"
-                )
-            },
-            trailingIcon = {
-                if (filterQuery.isNotEmpty()) {
-                    IconButton(onClick = { filterQuery = "" }) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "مسح"
-                        )
-                    }
-                }
-            },
+            placeholder = { Text("ابحث عن أي مادة أو باب لحجز الاعتماد (مثال: ب02/م01 أو التدفئة)...") },
+            leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = null) },
             singleLine = true,
-            shape = RoundedCornerShape(14.dp),
+            shape = RoundedCornerShape(12.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag("matrix_search_input")
         )
 
-        // 3. Chapters & Articles Customization Cards
+        // Render Chapters & Articles for Allocation
         chaptersToShow.forEach { chapterWithArticles ->
             val chapter = chapterWithArticles.chapter
-            val isRevenueChapter = chapter.sectionType == SectionType.REVENUE.name
-            val accentColor = if (isRevenueChapter) Color(0xFF0EA5E9) else EmeraldStable
 
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .testTag("matrix_chapter_${chapter.id}"),
+                    .testTag("matrix_chapter_block_${chapter.id}"),
                 shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                ),
-                border = BorderStroke(1.dp, accentColor.copy(alpha = 0.35f))
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             ) {
                 Column(
                     modifier = Modifier
@@ -1177,314 +956,168 @@ fun AllocationsMatrixSection(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = if (isRevenueChapter) "العنوان الأول (إيرادات) • ${chapter.officialCode}: ${chapter.name}"
-                                else "العنوان الثاني (نفقات) • ${chapter.officialCode}: ${chapter.name}",
-                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                color = accentColor
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = formatDzdWhole(chapterWithArticles.totalAllocated),
-                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.onSurface
+                            text = "${chapter.officialCode}: ${chapter.name}",
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                            color = EmeraldStable,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Text(
+                            text = "المجموع: ${formatDzdWhole(chapterWithArticles.totalAllocated)}",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
                     chapterWithArticles.articles.forEach { article ->
                         val isEditing = editingArticleId == article.id
-                        AllocationMatrixItemRow(
-                            article = article,
-                            isRevenue = isRevenueChapter,
-                            isEditing = isEditing,
-                            editingAllocatedText = if (isEditing) editingAmountText else "",
-                            editingCollectedText = if (isEditing) editingCollectedText else "",
-                            unallocatedRevenueSurplus = if (budgetBalanceDiff > 0) budgetBalanceDiff else 0.0,
-                            onStartEdit = {
-                                editingArticleId = article.id
-                                editingAmountText = article.allocatedAmount.toLong().toString()
-                                editingCollectedText = article.spentAmount.toLong().toString()
-                            },
-                            onEditAllocatedChange = { editingAmountText = it },
-                            onEditCollectedChange = { editingCollectedText = it },
-                            onSaveEdit = {
-                                val parsedAlloc = editingAmountText.replace(",", "").toDoubleOrNull()
-                                if (parsedAlloc != null && parsedAlloc >= 0.0) {
-                                    if (isRevenueChapter) {
-                                        val parsedCollected =
-                                            editingCollectedText.replace(",", "").toDoubleOrNull() ?: parsedAlloc
-                                        onUpdateRevenueAmounts(
-                                            article.id,
-                                            article.name,
-                                            parsedAlloc,
-                                            parsedCollected.coerceAtLeast(0.0)
-                                        )
-                                    } else {
-                                        onUpdateAllocation(article.id, article.name, parsedAlloc)
-                                    }
-                                    editingArticleId = null
-                                }
-                            },
-                            onCancelEdit = { editingArticleId = null }
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
 
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun AllocationMatrixItemRow(
-    article: ArticleEntity,
-    isRevenue: Boolean,
-    isEditing: Boolean,
-    editingAllocatedText: String,
-    editingCollectedText: String,
-    unallocatedRevenueSurplus: Double,
-    onStartEdit: () -> Unit,
-    onEditAllocatedChange: (String) -> Unit,
-    onEditCollectedChange: (String) -> Unit,
-    onSaveEdit: () -> Unit,
-    onCancelEdit: () -> Unit
-) {
-    val paddedArtNum = article.articleNumber.toString().padStart(2, '0')
-    val accentColor = if (isRevenue) Color(0xFF0EA5E9) else EmeraldStable
-
-    Surface(
-        shape = RoundedCornerShape(12.dp),
-        color = if (isEditing) {
-            accentColor.copy(alpha = 0.10f)
-        } else {
-            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-        },
-        border = BorderStroke(
-            width = if (isEditing) 1.5.dp else 1.dp,
-            color = if (isEditing) accentColor
-            else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
-        ),
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(enabled = !isEditing) { onStartEdit() }
-            .testTag("matrix_article_row_${article.baseArticleId}")
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(10.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = "[${article.officialCode}]",
-                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                            color = accentColor
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = "المادة $paddedArtNum: ${article.name}",
-                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                    Text(
-                        text = if (isRevenue) {
-                            "المحصّل الفعلي: ${formatDzdCurrency(article.spentAmount)} • الباقي للتحصيل: ${formatDzdCurrency(article.remainingCredit)}"
-                        } else {
-                            "المصروف الفعلي: ${formatDzdCurrency(article.spentAmount)} • المتبقي للصرف: ${formatDzdCurrency(article.remainingCredit)}"
-                        },
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-
-                if (!isEditing) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(horizontalAlignment = Alignment.End) {
-                            Text(
-                                text = if (isRevenue) "الإيراد المقدر" else "الاعتماد المفتوح",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = formatDzdWhole(article.allocatedAmount),
-                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                color = accentColor
-                            )
-                        }
-                        IconButton(
-                            onClick = onStartEdit,
-                            modifier = Modifier
-                                .size(40.dp)
-                                .testTag("edit_allocation_btn_${article.baseArticleId}")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = if (isRevenue) "تخصيص الإيراد" else "تعديل الاعتماد",
-                                tint = accentColor,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                    }
-                }
-            }
-
-            AnimatedVisibility(visible = isEditing) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 10.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    OutlinedTextField(
-                        value = editingAllocatedText,
-                        onValueChange = { input ->
-                            onEditAllocatedChange(input.filter { it.isDigit() || it == '.' })
-                        },
-                        label = {
-                            Text(
-                                if (isRevenue) "الإيراد المقدر / المفتوح للسنة (د.ج)"
-                                else "الاعتماد المفتوح / المرخص للمادة (د.ج)"
-                            )
-                        },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("allocation_input_${article.baseArticleId}")
-                    )
-
-                    if (isRevenue) {
-                        OutlinedTextField(
-                            value = editingCollectedText,
-                            onValueChange = { input ->
-                                onEditCollectedChange(input.filter { it.isDigit() || it == '.' })
-                            },
-                            label = { Text("الإيراد المحصّل فعلياً (د.ج)") },
-                            singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .testTag("revenue_collected_input_${article.baseArticleId}")
-                        )
-                    }
-
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        OutlinedButton(
-                            onClick = {
-                                val current = editingAllocatedText.toDoubleOrNull() ?: article.allocatedAmount
-                                val next = (current + 50_000).toLong().toString()
-                                onEditAllocatedChange(next)
-                                if (isRevenue) onEditCollectedChange(next)
-                            },
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
-                        ) {
-                            Text("+50,000", style = MaterialTheme.typography.labelMedium)
-                        }
-
-                        OutlinedButton(
-                            onClick = {
-                                val current = editingAllocatedText.toDoubleOrNull() ?: article.allocatedAmount
-                                val next = (current + 100_000).toLong().toString()
-                                onEditAllocatedChange(next)
-                                if (isRevenue) onEditCollectedChange(next)
-                            },
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
-                        ) {
-                            Text("+100,000", style = MaterialTheme.typography.labelMedium)
-                        }
-
-                        OutlinedButton(
-                            onClick = {
-                                val current = editingAllocatedText.toDoubleOrNull() ?: article.allocatedAmount
-                                val next = (current - 50_000).coerceAtLeast(0.0).toLong().toString()
-                                onEditAllocatedChange(next)
-                                if (isRevenue) onEditCollectedChange(next)
-                            },
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
-                        ) {
-                            Text("-50,000", style = MaterialTheme.typography.labelMedium)
-                        }
-
-                        OutlinedButton(
-                            onClick = {
-                                onEditAllocatedChange("0")
-                                if (isRevenue) onEditCollectedChange("0")
-                            },
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
-                        ) {
-                            Text("تصفير (0)", style = MaterialTheme.typography.labelMedium)
-                        }
-
-                        if (isRevenue) {
-                            OutlinedButton(
-                                onClick = {
-                                    onEditCollectedChange(editingAllocatedText)
-                                },
-                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
-                            ) {
-                                Text("تحصيل 100% من المقدر", style = MaterialTheme.typography.labelMedium)
-                            }
-                        } else if (unallocatedRevenueSurplus > 0.0) {
-                            OutlinedButton(
-                                onClick = {
-                                    val current = editingAllocatedText.toDoubleOrNull() ?: article.allocatedAmount
-                                    val balancedAmount = (current + unallocatedRevenueSurplus).toLong().toString()
-                                    onEditAllocatedChange(balancedAmount)
-                                },
-                                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
-                            ) {
-                                Text(
-                                    text = "+ فائض الإيرادات (${formatDzdWhole(unallocatedRevenueSurplus)})",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = Color(0xFF0EA5E9)
-                                )
-                            }
-                        }
-                    }
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.End,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        IconButton(
-                            onClick = onCancelEdit,
-                            modifier = Modifier.testTag("cancel_allocation_btn_${article.baseArticleId}")
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Close,
-                                contentDescription = "إلغاء",
-                                tint = CrimsonCritical
-                            )
-                        }
-                        Button(
-                            onClick = onSaveEdit,
-                            colors = ButtonDefaults.buttonColors(containerColor = accentColor),
+                        Surface(
                             shape = RoundedCornerShape(10.dp),
-                            modifier = Modifier.testTag("save_allocation_btn_${article.baseArticleId}")
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f),
+                            border = BorderStroke(
+                                1.dp,
+                                if (isEditing) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                            ),
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(if (isRevenue) "حفظ الإيراد" else "حفظ الاعتماد")
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(10.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "[${article.officialCode}] ${article.name}",
+                                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+                                        if (article.isAutoCatering) {
+                                            Text(
+                                                text = "مخصص آلي (المنشور 13/2026)",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = EmeraldStable
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.width(8.dp))
+
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(
+                                            text = formatDzdCurrency(article.allocatedAmount),
+                                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+
+                                        IconButton(
+                                            onClick = {
+                                                if (isEditing) {
+                                                    editingArticleId = null
+                                                } else {
+                                                    editingArticleId = article.id
+                                                    editingAmountText = article.allocatedAmount.toLong().toString()
+                                                }
+                                            },
+                                            modifier = Modifier
+                                                .size(32.dp)
+                                                .testTag("matrix_edit_btn_${article.baseArticleId}")
+                                        ) {
+                                            Icon(
+                                                imageVector = if (isEditing) Icons.Default.Close else Icons.Default.Edit,
+                                                contentDescription = "حجز الاعتماد",
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+                                }
+
+                                AnimatedVisibility(visible = isEditing) {
+                                    Column(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        OutlinedTextField(
+                                            value = editingAmountText,
+                                            onValueChange = { input ->
+                                                editingAmountText = input.filter { it.isDigit() || it == '.' }
+                                            },
+                                            label = { Text("قيمة الاعتماد المفتوح (د.ج)") },
+                                            singleLine = true,
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .testTag("matrix_alloc_input_${article.baseArticleId}")
+                                        )
+
+                                        FlowRow(
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                            verticalArrangement = Arrangement.spacedBy(4.dp)
+                                        ) {
+                                            listOf(50_000, 100_000, 250_000, 500_000).forEach { bump ->
+                                                OutlinedButton(
+                                                    onClick = {
+                                                        val current = editingAmountText.toDoubleOrNull() ?: article.allocatedAmount
+                                                        editingAmountText = (current + bump).toLong().toString()
+                                                    },
+                                                    contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                                ) {
+                                                    Text("+$bump", style = MaterialTheme.typography.labelSmall)
+                                                }
+                                            }
+
+                                            OutlinedButton(
+                                                onClick = { editingAmountText = "0" },
+                                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp)
+                                            ) {
+                                                Text("تصفير (0)", style = MaterialTheme.typography.labelSmall)
+                                            }
+                                        }
+
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.End
+                                        ) {
+                                            TextButton(onClick = { editingArticleId = null }) {
+                                                Text("إلغاء", color = CrimsonCritical)
+                                            }
+
+                                            Spacer(modifier = Modifier.width(6.dp))
+
+                                            Button(
+                                                onClick = {
+                                                    val parsed = editingAmountText.replace(",", "").toDoubleOrNull()
+                                                    if (parsed != null && parsed >= 0.0) {
+                                                        onUpdateAllocation(article.id, article.name, parsed)
+                                                        editingArticleId = null
+                                                    }
+                                                },
+                                                colors = ButtonDefaults.buttonColors(containerColor = EmeraldStable),
+                                                shape = RoundedCornerShape(8.dp),
+                                                modifier = Modifier.testTag("matrix_save_btn_${article.baseArticleId}")
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Check,
+                                                    contentDescription = null,
+                                                    modifier = Modifier.size(16.dp)
+                                                )
+                                                Spacer(modifier = Modifier.width(4.dp))
+                                                Text("حفظ الاعتماد")
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -1494,7 +1127,7 @@ private fun AllocationMatrixItemRow(
 }
 
 /**
- * Tab 3: سجل الفواتير والمصروفات (Transactions Ledger)
+ * Tab 3: سجل سندات الطلب والالتزامات (Bons de Commande & Commitments Ledger)
  */
 @Composable
 fun TransactionsLedgerSection(
@@ -1506,34 +1139,57 @@ fun TransactionsLedgerSection(
     onOpenNewExpenseModal: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val totalSpentLedger = remember(transactions) {
+        transactions.sumOf { it.amount }
+    }
+
     Column(
         modifier = modifier
             .fillMaxWidth()
             .testTag("transactions_ledger_section"),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "سجل سندات الطلب والالتزامات للسنة المالية $fiscalYear",
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Text(
+                    text = "إجمالي الالتزامات في السجل: ${formatDzdCurrency(totalSpentLedger)} (${transactions.size} سند طلب)",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            Button(
+                onClick = onOpenNewExpenseModal,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = EmeraldStable,
+                    contentColor = Color(0xFF022C22)
+                ),
+                shape = RoundedCornerShape(10.dp),
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp),
+                modifier = Modifier.testTag("ledger_new_expense_btn")
+            ) {
+                Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("سند طلب جديد", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
+            }
+        }
+
         OutlinedTextField(
             value = searchQuery,
             onValueChange = onSearchQueryChange,
-            placeholder = { Text("بحث في سجل السنة المالية $fiscalYear برقم الحوالة، الممون، أو المادة...") },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = "بحث"
-                )
-            },
-            trailingIcon = {
-                if (searchQuery.isNotEmpty()) {
-                    IconButton(onClick = { onSearchQueryChange("") }) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "مسح البحث"
-                        )
-                    }
-                }
-            },
+            placeholder = { Text("ابحث برقم سند الطلب، اسم الممون، بيان النفقة أو المادة...") },
+            leadingIcon = { Icon(imageVector = Icons.Default.Search, contentDescription = null) },
             singleLine = true,
-            shape = RoundedCornerShape(14.dp),
+            shape = RoundedCornerShape(12.dp),
             modifier = Modifier
                 .fillMaxWidth()
                 .testTag("ledger_search_input")
@@ -1542,44 +1198,40 @@ fun TransactionsLedgerSection(
         if (transactions.isEmpty()) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(18.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Icon(
                         imageVector = Icons.Default.ReceiptLong,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(44.dp)
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        text = "سجل النفقات للسنة المالية $fiscalYear فارغ حالياً (0 حوالات)",
-                        style = MaterialTheme.typography.titleMedium
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier.size(48.dp)
                     )
                     Text(
-                        text = "تبدأ كل سنة مالية جديدة بسجل نفقات فارغ ومستقل، مع حفظ سجلات السنوات السابقة في الأرشيف.",
+                        text = "لا توجد سندات طلب مسجلة في هذه السنة المالية حتى الآن",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = "اضغط على «سند طلب جديد» أو اختر مادة من التبويب الأول لتحرير سند طلب واقتطاعه من الاعتماد المفتوح",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Button(onClick = onOpenNewExpenseModal) {
-                        Text("+ تسجيل حوالة دفع في سنة $fiscalYear")
-                    }
                 }
             }
         } else {
             transactions.forEach { tx ->
-                TransactionLedgerCard(
+                LedgerItemCard(
                     transaction = tx,
-                    onRollback = { onDeleteAndRefundTransaction(tx) }
+                    onDeleteAndRefund = { onDeleteAndRefundTransaction(tx) }
                 )
             }
         }
@@ -1587,24 +1239,25 @@ fun TransactionsLedgerSection(
 }
 
 @Composable
-private fun TransactionLedgerCard(
+private fun LedgerItemCard(
     transaction: TransactionEntity,
-    onRollback: () -> Unit
+    onDeleteAndRefund: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
-            .testTag("transaction_card_${transaction.id}"),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f))
+            .testTag("ledger_item_${transaction.id}"),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp)
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1614,75 +1267,76 @@ private fun TransactionLedgerCard(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Surface(
                         shape = RoundedCornerShape(8.dp),
-                        color = AmberElevated.copy(alpha = 0.16f)
+                        color = EmeraldStable.copy(alpha = 0.15f),
+                        border = BorderStroke(1.dp, EmeraldStable.copy(alpha = 0.35f))
                     ) {
                         Text(
-                            text = transaction.voucherNumber,
-                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                            color = AmberElevated,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            text = transaction.orderNumber,
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = EmeraldStable,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                         )
                     }
+
                     Spacer(modifier = Modifier.width(8.dp))
+
                     Text(
-                        text = "${formatLedgerDate(transaction.timestamp)} • سنة ${transaction.fiscalYear}",
-                        style = MaterialTheme.typography.labelMedium,
+                        text = formatLedgerDate(transaction.timestamp),
+                        style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
-                Text(
-                    text = "- ${formatDzdCurrency(transaction.amount)}",
-                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                    color = CrimsonCritical
-                )
-            }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = formatDzdCurrency(transaction.amount),
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
 
-            Spacer(modifier = Modifier.height(8.dp))
+                    IconButton(
+                        onClick = onDeleteAndRefund,
+                        modifier = Modifier
+                            .size(32.dp)
+                            .testTag("delete_transaction_btn_${transaction.id}")
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "إلغاء واسترجاع الاعتماد",
+                            tint = CrimsonCritical,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            }
 
             Text(
                 text = transaction.description,
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium),
                 color = MaterialTheme.colorScheme.onSurface
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = "الممون: ${transaction.supplierName} • [${transaction.articleCode}] ${transaction.articleName}",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Text(
-                text = transaction.chapterName,
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                OutlinedButton(
-                    onClick = onRollback,
-                    border = BorderStroke(1.dp, CrimsonCritical.copy(alpha = 0.55f)),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = CrimsonCritical),
-                    shape = RoundedCornerShape(10.dp),
-                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
-                    modifier = Modifier.testTag("rollback_tx_btn_${transaction.id}")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Restore,
-                        contentDescription = null,
-                        modifier = Modifier.size(16.dp)
-                    )
-                    Spacer(modifier = Modifier.width(6.dp))
+                Text(
+                    text = "المادة: [${transaction.articleCode}] ${transaction.articleName}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+
+                if (transaction.supplierName.isNotBlank()) {
                     Text(
-                        text = "إلغاء واسترجاع الاعتماد",
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                        text = "الممون: ${transaction.supplierName}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
             }

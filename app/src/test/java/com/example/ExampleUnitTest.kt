@@ -5,6 +5,7 @@ import com.example.data.Circular13Constants
 import com.example.data.ConsumptionHealth
 import com.example.data.SectionType
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ExampleUnitTest {
@@ -29,21 +30,26 @@ class ExampleUnitTest {
             chapterNumber = 5,
             articleNumber = 1,
             officialCode = "ب05 / م01",
-            name = "مواد العلوم الفيزيائية والتكنولوجيا والعلوم الطبيعية",
-            description = "المواد الكيميائية والزجاجيات المخبرية",
+            name = "لوازم التجارب",
+            description = "الأدوات والمعدات والمجسمات العلمية لإجراء التجارب البيداغوجية",
             allocatedAmount = 100_000.0,
             spentAmount = 65_000.0
         )
         assertEquals(ConsumptionHealth.STABLE, stableArticle.healthStatus)
         assertEquals(35_000.0, stableArticle.remainingCredit, 0.01)
+        assertEquals(65.0, stableArticle.consumptionRate, 0.01)
 
         val elevatedArticle = stableArticle.copy(spentAmount = 80_000.0)
         assertEquals(ConsumptionHealth.ELEVATED, elevatedArticle.healthStatus)
+        assertEquals(80.0, elevatedArticle.consumptionRate, 0.01)
 
         val criticalArticle = stableArticle.copy(spentAmount = 95_000.0)
         assertEquals(ConsumptionHealth.CRITICAL, criticalArticle.healthStatus)
+        assertEquals(95.0, criticalArticle.consumptionRate, 0.01)
 
         val overBudgetArticle = stableArticle.copy(spentAmount = 105_000.0)
         assertEquals(ConsumptionHealth.OVER_BUDGET, overBudgetArticle.healthStatus)
+        assertEquals(105.0, overBudgetArticle.consumptionRate, 0.01)
+        assertTrue(overBudgetArticle.remainingCredit < 0.0)
     }
 }

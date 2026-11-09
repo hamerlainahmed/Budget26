@@ -15,7 +15,7 @@ import kotlinx.coroutines.launch
         ArticleEntity::class,
         TransactionEntity::class
     ],
-    version = 2,
+    version = 4,
     exportSchema = false
 )
 abstract class BudgetDatabase : RoomDatabase() {
@@ -45,282 +45,227 @@ abstract class BudgetDatabase : RoomDatabase() {
         }
 
         /**
-         * Official Algerian School Operating Budget Nomenclature (Circular No. 29 dated Feb 15, 2018
-         * amended by Ministerial Circular No. 13 dated Feb 15, 2026).
+         * Official Educational Institutions Budget Nomenclature - 2024
+         * (نموذج مدونة ميزانية المؤسسات التعليمية حسب الطبيعة الاقتصادية للنفقة - المتوسطة والثانوية)
+         * Exclusively expenditures (النفقات فقط).
          */
         fun buildOfficialChapters(): List<ChapterEntity> = listOf(
             // =========================================================================
-            // العنوان الأول: الإيرادات (الأبواب 01 إلى 12 حسب المدونة الرسمية 29/2018)
-            // =========================================================================
-            ChapterEntity(
-                id = "REV_CH01",
-                sectionType = SectionType.REVENUE.name,
-                branchNumber = 1,
-                branchTitle = "العنوان الأول: الإيرادات - الفرع الأول: إيرادات التسيير",
-                chapterNumber = 1,
-                officialCode = "الباب 01",
-                name = "إعانات التسيير الممنوحة من طرف الدولة",
-                description = "إعانة التغذية والمنح الوطنية (المنشور 13/2026)، إعانة المصالح المشتركة، وتعويض الكهرباء والغاز للجنوب"
-            ),
-            ChapterEntity(
-                id = "REV_CH02",
-                sectionType = SectionType.REVENUE.name,
-                branchNumber = 1,
-                branchTitle = "العنوان الأول: الإيرادات - الفرع الأول: إيرادات التسيير",
-                chapterNumber = 2,
-                officialCode = "الباب 02",
-                name = "الإعانات الممنوحة من الجماعات المحلية والمؤسسات والهيئات العمومية",
-                description = "إعانات الولاية والبلدية والهيئات العمومية المخصصة للمؤسسة"
-            ),
-            ChapterEntity(
-                id = "REV_CH03",
-                sectionType = SectionType.REVENUE.name,
-                branchNumber = 1,
-                branchTitle = "العنوان الأول: الإيرادات - الفرع الأول: إيرادات التسيير",
-                chapterNumber = 3,
-                officialCode = "الباب 03",
-                name = "الهبات والوصايا",
-                description = "الهبات والوصايا والتبرعات المرخص بها قانوناً"
-            ),
-            ChapterEntity(
-                id = "REV_CH04",
-                sectionType = SectionType.REVENUE.name,
-                branchNumber = 1,
-                branchTitle = "العنوان الأول: الإيرادات - الفرع الأول: إيرادات التسيير",
-                chapterNumber = 4,
-                officialCode = "الباب 04",
-                name = "إيرادات مرتبطة بنشاط المؤسسة",
-                description = "عائدات الإيجار والأعباء الملحقة للسكنات الوظيفية، مستحقات المبيت، بيع البقايا، الإسقاط، ومبيعات الكتاب المدرسي"
-            ),
-            ChapterEntity(
-                id = "REV_CH05",
-                sectionType = SectionType.REVENUE.name,
-                branchNumber = 1,
-                branchTitle = "العنوان الأول: الإيرادات - الفرع الأول: إيرادات التسيير",
-                chapterNumber = 5,
-                officialCode = "الباب 05",
-                name = "إيرادات مختلفة",
-                description = "تحصيل الدفع غير المستحق، تعويضات التأمين، والإيرادات الاستثنائية"
-            ),
-            ChapterEntity(
-                id = "REV_CH06",
-                sectionType = SectionType.REVENUE.name,
-                branchNumber = 1,
-                branchTitle = "العنوان الأول: الإيرادات - الفرع الأول: إيرادات التسيير",
-                chapterNumber = 6,
-                officialCode = "الباب 06",
-                name = "إيرادات ناتجة عن تسديد حقوق التسجيل",
-                description = "حقوق التسجيل والتراسل المدرسي للتلاميذ"
-            ),
-            ChapterEntity(
-                id = "REV_CH07",
-                sectionType = SectionType.REVENUE.name,
-                branchNumber = 1,
-                branchTitle = "العنوان الأول: الإيرادات - الفرع الأول: إيرادات التسيير",
-                chapterNumber = 7,
-                officialCode = "الباب 07",
-                name = "إيرادات الإطعام",
-                description = "مساهمات عائلات التلاميذ غير الممنوحين، إطعام المستخدمين في الطاولة المشتركة، والمدعوين"
-            ),
-            ChapterEntity(
-                id = "REV_CH08",
-                sectionType = SectionType.REVENUE.name,
-                branchNumber = 2,
-                branchTitle = "العنوان الأول: الإيرادات - الفرع الثاني: أقسام الرياضة والدراسة",
-                chapterNumber = 8,
-                officialCode = "الباب 08",
-                name = "إيرادات تسيير أقسام الرياضة والدراسة",
-                description = "الاعتمادات المخصصة لتسيير أقسام الرياضة والدراسة"
-            ),
-            ChapterEntity(
-                id = "REV_CH09",
-                sectionType = SectionType.REVENUE.name,
-                branchNumber = 3,
-                branchTitle = "العنوان الأول: الإيرادات - الفرع الثالث: إيرادات ذات طابع خاص",
-                chapterNumber = 9,
-                officialCode = "الباب 09",
-                name = "إعانات المنحة المدرسية الخاصة والتضامن",
-                description = "إعانات المنحة المدرسية الخاصة، وحدات الكشف والمتابعة UDS، ومجانية الكتاب المدرسي"
-            ),
-
-            // =========================================================================
-            // العنوان الثاني: النفقات - الفرع الأول: نفقات تسيير المصالح (الأبواب 01 إلى 15)
+            // العنوان الثاني: النفقات - الفرع الأول: نفقات تسيير المصالح (الباب الثاني T2)
             // =========================================================================
             ChapterEntity(
                 id = "EXP_CH01",
                 sectionType = SectionType.EXPENDITURE.name,
                 branchNumber = 1,
-                branchTitle = "العنوان الثاني: النفقات - الفرع الأول: نفقات تسيير المصالح",
+                branchTitle = "الفرع الأول: نفقات تسيير المصالح (الباب الثاني T2)",
                 chapterNumber = 1,
                 officialCode = "الباب 01",
                 name = "تسديد المصاريف",
-                description = "مصاريف المهام والتنقلات للموظفين والأعوان ومصاريف الاستقبالات الرسمية"
+                description = "مصاريف المهام والتنقلات والاستقبالات والخرجات البيداغوجية، ومصاريف الدراسة والخبرة"
             ),
             ChapterEntity(
                 id = Circular13Constants.EXP_CHAPTER_2_BASE_ID,
                 sectionType = SectionType.EXPENDITURE.name,
                 branchNumber = 1,
-                branchTitle = "العنوان الثاني: النفقات - الفرع الأول: نفقات تسيير المصالح (شرط ≥ 35%)",
+                branchTitle = "الفرع الأول: نفقات تسيير المصالح (الباب الثاني T2)",
                 chapterNumber = 2,
                 officialCode = "الباب 02",
                 name = "التكاليف الملحقة",
-                description = "الماء، الكهرباء، الغاز، الوقود، البريد والمواصلات، الإعلان والنشر (يخضع لشرط ≥ 35% من نفقات التسيير)"
+                description = "الماء، الكهرباء، الغاز، الوقود، الطاقة الشمسية، البريد والمواصلات، الإعلان، وتأمين المباني"
             ),
             ChapterEntity(
                 id = "EXP_CH03",
                 sectionType = SectionType.EXPENDITURE.name,
                 branchNumber = 1,
-                branchTitle = "العنوان الثاني: النفقات - الفرع الأول: نفقات تسيير المصالح",
+                branchTitle = "الفرع الأول: نفقات تسيير المصالح (الباب الثاني T2)",
                 chapterNumber = 3,
                 officialCode = "الباب 03",
                 name = "اللوازم",
-                description = "أدوات ولوازم المكتب والمطبوعات الإدارية، البياضة، مواد التنظيف والتطهير، والمواد الصيدلانية"
+                description = "لوازم المكتب، مستهلكات الإعلام الآلي، النسخ والطبع، البياضة، المواد الصيدلانية، ومواد التنظيف"
             ),
             ChapterEntity(
                 id = "EXP_CH04",
                 sectionType = SectionType.EXPENDITURE.name,
                 branchNumber = 1,
-                branchTitle = "العنوان الثاني: النفقات - الفرع الأول: نفقات تسيير المصالح",
+                branchTitle = "الفرع الأول: نفقات تسيير المصالح (الباب الثاني T2)",
                 chapterNumber = 4,
                 officialCode = "الباب 04",
                 name = "الأدوات والأثاث",
-                description = "تجديد وصيانة الأدوات والأثاث المدرسي والمكتبي، عتاد المطعم، أجهزة الإعلام الآلي والنسخ، ووسائل الوقاية والأمن"
+                description = "صيانة الأثاث المدرسي والمكتبي، أجهزة الإعلام الآلي، أدوات الوقاية، عتاد المطعم، والستائر ولوازم الداخلية"
             ),
             ChapterEntity(
                 id = "EXP_CH05",
                 sectionType = SectionType.EXPENDITURE.name,
                 branchNumber = 1,
-                branchTitle = "العنوان الثاني: النفقات - الفرع الأول: نفقات تسيير المصالح",
+                branchTitle = "الفرع الأول: نفقات تسيير المصالح (الباب الثاني T2)",
                 chapterNumber = 5,
                 officialCode = "الباب 05",
                 name = "اللوازم البيداغوجية",
-                description = "الوسائل التعليمية ومواد المخابر والورشات، الطباشير والأقلام، ورق ولوازم السحب للفروض والاختبارات، والوثائق المدرسية"
+                description = "لوازم التجارب، مواد المخابر والكواشف، وأدوات الاستنساخ والطباشير والأقلام والطلاسات"
             ),
             ChapterEntity(
                 id = Circular13Constants.EXP_CHAPTER_6_BASE_ID,
                 sectionType = SectionType.EXPENDITURE.name,
                 branchNumber = 1,
-                branchTitle = "العنوان الثاني: النفقات - الفرع الأول: نفقات تسيير المصالح (المنشور 13/2026)",
+                branchTitle = "الفرع الأول: نفقات تسيير المصالح (الباب الثاني T2)",
                 chapterNumber = 6,
                 officialCode = "الباب 06",
                 name = "نفقات الإطعام",
-                description = "إطعام التلاميذ الداخليين ونصف الداخليين (داخلي 33,696 د.ج / نصف داخلي 13,248 د.ج)، إطعام المستخدمين، والمدعوين"
+                description = "إطعام التلاميذ الداخليين ونصف الداخليين والمستخدمين والمدعوين"
             ),
             ChapterEntity(
                 id = "EXP_CH07",
                 sectionType = SectionType.EXPENDITURE.name,
                 branchNumber = 1,
-                branchTitle = "العنوان الثاني: النفقات - الفرع الأول: نفقات تسيير المصالح",
+                branchTitle = "الفرع الأول: نفقات تسيير المصالح (الباب الثاني T2)",
                 chapterNumber = 7,
                 officialCode = "الباب 07",
                 name = "الألبسة",
-                description = "اقتناء ألبسة العمل والوقاية للعمال المهنيين وأعوان الأمن والوقاية والمخابر"
+                description = "ملابس العمل والوقاية (السائق، الحاجب، عون الاستقبال، أعوان الخدمات)"
             ),
             ChapterEntity(
                 id = "EXP_CH08",
                 sectionType = SectionType.EXPENDITURE.name,
                 branchNumber = 1,
-                branchTitle = "العنوان الثاني: النفقات - الفرع الأول: نفقات تسيير المصالح",
+                branchTitle = "الفرع الأول: نفقات تسيير المصالح (الباب الثاني T2)",
                 chapterNumber = 8,
                 officialCode = "الباب 08",
                 name = "التأمين",
-                description = "تأمين التلاميذ في الخرجات البيداغوجية وتأمين ممتلكات وهياكل المؤسسة"
+                description = "تأمين التلاميذ أثناء الخرجات البيداغوجية"
             ),
             ChapterEntity(
                 id = "EXP_CH09",
                 sectionType = SectionType.EXPENDITURE.name,
                 branchNumber = 1,
-                branchTitle = "العنوان الثاني: النفقات - الفرع الأول: نفقات تسيير المصالح",
+                branchTitle = "الفرع الأول: نفقات تسيير المصالح (الباب الثاني T2)",
                 chapterNumber = 9,
                 officialCode = "الباب 09",
                 name = "نفقات التكوين",
-                description = "نفقات العمليات التكوينية والملتقيات التربوية والأيام الدراسية"
+                description = "التكوين والتحسين المستمر، التكوين ما قبل الترقية، نفقات الامتحانات والمسابقات، وتكوين معلمي الابتدائي"
             ),
             ChapterEntity(
                 id = "EXP_CH10",
                 sectionType = SectionType.EXPENDITURE.name,
                 branchNumber = 1,
-                branchTitle = "العنوان الثاني: النفقات - الفرع الأول: نفقات تسيير المصالح",
+                branchTitle = "الفرع الأول: نفقات تسيير المصالح (الباب الثاني T2)",
                 chapterNumber = 10,
                 officialCode = "الباب 10",
                 name = "حظيرة السيارات",
-                description = "الوقود والزيوت، صيانة وتصليح السيارات وقطع الغيار، العجلات المطاطية، التأمين، القسيمة والمراقبة التقنية"
+                description = "اقتناء وتجديد السيارات، الوقود والزيوت، الصيانة والتصليح وقطع الغيار، العجلات، الترقيم، التأمين، القسيمة، والمراقبة التقنية"
             ),
             ChapterEntity(
                 id = "EXP_CH11",
                 sectionType = SectionType.EXPENDITURE.name,
                 branchNumber = 1,
-                branchTitle = "العنوان الثاني: النفقات - الفرع الأول: نفقات تسيير المصالح",
+                branchTitle = "الفرع الأول: نفقات تسيير المصالح (الباب الثاني T2)",
                 chapterNumber = 11,
                 officialCode = "الباب 11",
                 name = "نفقات تسيير وحدات الكشف والمتابعة (UDS)",
-                description = "تغطية نفقات تسيير وصيانة وحدة الكشف والمتابعة الصحية المدرسية"
+                description = "نفقات ومستلزمات تسيير وحدة الكشف والمتابعة الصحية المدرسية"
             ),
             ChapterEntity(
                 id = "EXP_CH12",
                 sectionType = SectionType.EXPENDITURE.name,
                 branchNumber = 1,
-                branchTitle = "العنوان الثاني: النفقات - الفرع الأول: نفقات تسيير المصالح",
+                branchTitle = "الفرع الأول: نفقات تسيير المصالح (الباب الثاني T2)",
                 chapterNumber = 12,
                 officialCode = "الباب 12",
                 name = "المكتبة المدرسية",
-                description = "شراء كتب ومجلات تربوية وعلمية والاشتراك في المجلات والدوريات البيداغوجية والنشرة الرسمية"
+                description = "شراء كتب ومجلات تربوية، والاشتراك في المجلات والدوريات البيداغوجية"
             ),
             ChapterEntity(
                 id = "EXP_CH13",
                 sectionType = SectionType.EXPENDITURE.name,
                 branchNumber = 1,
-                branchTitle = "العنوان الثاني: النفقات - الفرع الأول: نفقات تسيير المصالح",
+                branchTitle = "الفرع الأول: نفقات تسيير المصالح (الباب الثاني T2)",
                 chapterNumber = 13,
                 officialCode = "الباب 13",
                 name = "النفقات المتعلقة بالنشاط الثقافي والرياضي",
-                description = "النشاطات الثقافية والعلمية وجوائز التلاميذ المتفوقين، والمنافسات واللوازم الرياضية"
+                description = "النفقات المتعلقة بالنشاط الثقافي والنفقات المتعلقة بالنشاط الرياضي"
             ),
             ChapterEntity(
                 id = "EXP_CH14",
                 sectionType = SectionType.EXPENDITURE.name,
                 branchNumber = 1,
-                branchTitle = "العنوان الثاني: النفقات - الفرع الأول: نفقات تسيير المصالح",
+                branchTitle = "الفرع الأول: نفقات تسيير المصالح (الباب الثاني T2)",
                 chapterNumber = 14,
                 officialCode = "الباب 14",
                 name = "صيانة وتصليح المباني البيداغوجية والإدارية والهياكل الملحقة",
-                description = "صيانة وتصليح المباني، اقتناء مواد البناء والترصيص والخردوات والطلاء والتدفئة، صيانة المساحات الخضراء ونقل الفضلات"
+                description = "ترميم وصيانة المباني، مواد البناء والترصيص والخردوات والكهرباء والتدفئة، صيانة المساحات الخضراء، ونقل الخردوات والمهملات"
             ),
             ChapterEntity(
                 id = "EXP_CH15",
                 sectionType = SectionType.EXPENDITURE.name,
                 branchNumber = 1,
-                branchTitle = "العنوان الثاني: النفقات - الفرع الأول: نفقات تسيير المصالح",
+                branchTitle = "الفرع الأول: نفقات تسيير المصالح (الباب الثاني T2)",
                 chapterNumber = 15,
                 officialCode = "الباب 15",
-                name = "المصاريف القضائية والتعويضات",
-                description = "المصاريف الناتجة عن الأحكام القضائية والتعويضات والرسوم التنفيذية"
+                name = "المصاريف القضائية والتعويضات المستحقة على عاتق الدولة",
+                description = "تسديد المصاريف القضائية والتعويضات المستحقة قانوناً على عاتق الدولة"
             ),
+
+            // =========================================================================
+            // العنوان الثاني: النفقات - الفرع الثاني: نفقات تسيير أقسام الرياضة والدراسة (الباب الثاني T2)
+            // =========================================================================
             ChapterEntity(
                 id = "EXP_CH16",
                 sectionType = SectionType.EXPENDITURE.name,
                 branchNumber = 2,
-                branchTitle = "العنوان الثاني: النفقات - الفرع الثاني: أقسام الرياضة والدراسة",
+                branchTitle = "الفرع الثاني: نفقات تسيير أقسام الرياضة والدراسة (الباب الثاني T2)",
                 chapterNumber = 16,
                 officialCode = "الباب 16",
                 name = "نفقات تسيير أقسام الرياضة والدراسة",
-                description = "نفقات الإطعام واللوازم البيداغوجية والرياضية الخاصة بأقسام الرياضة والدراسة"
+                description = "مصاريف الإطعام، نقل وتأمين التلاميذ، واقتناء الأدوات واللوازم الرياضية والبيداغوجية"
             ),
+
+            // =========================================================================
+            // العنوان الثاني: النفقات - الفرع الثالث: نفقات ذات طابع خاص
+            // =========================================================================
             ChapterEntity(
                 id = "EXP_CH17",
                 sectionType = SectionType.EXPENDITURE.name,
                 branchNumber = 3,
-                branchTitle = "العنوان الثاني: النفقات - الفرع الثالث: نفقات ذات طابع خاص",
+                branchTitle = "الفرع الثالث: نفقات ذات طابع خاص (الباب الثاني T2)",
                 chapterNumber = 17,
                 officialCode = "الباب 17",
-                name = "نفقات المنحة المدرسية الخاصة والكتاب المدرسي والامتحانات",
-                description = "صرف المنحة المدرسية الخاصة، مستحقات الكتاب المدرسي، وتسيير مراكز الامتحانات الرسمية"
+                name = "نفقات النشاط التربوي الاستثنائي",
+                description = "الإطعام ومصاريف الإقامة والتمدرس للنشاط التربوي الاستثنائي"
+            ),
+            ChapterEntity(
+                id = "EXP_CH18",
+                sectionType = SectionType.EXPENDITURE.name,
+                branchNumber = 3,
+                branchTitle = "الفرع الثالث: نفقات ذات طابع خاص (الباب الرابع T4)",
+                chapterNumber = 18,
+                officialCode = "الباب 18",
+                name = "المنحة المدرسية الخاصة لفائدة التلاميذ المعوزين",
+                description = "صرف المنحة المدرسية الخاصة لفائدة التلاميذ المعوزين (5000 د.ج)"
+            ),
+            ChapterEntity(
+                id = "EXP_CH19",
+                sectionType = SectionType.EXPENDITURE.name,
+                branchNumber = 3,
+                branchTitle = "الفرع الثالث: نفقات ذات طابع خاص (الباب الرابع T4)",
+                chapterNumber = 19,
+                officialCode = "الباب 19",
+                name = "المنح المدرسية للتجهيز",
+                description = "منحة التجهيز المدرسية المخصصة لفائدة التلاميذ"
+            ),
+            ChapterEntity(
+                id = "EXP_CH20",
+                sectionType = SectionType.EXPENDITURE.name,
+                branchNumber = 3,
+                branchTitle = "الفرع الثالث: نفقات ذات طابع خاص (الباب الرابع T4)",
+                chapterNumber = 20,
+                officialCode = "الباب 20",
+                name = "نفقات الكتاب المدرسي",
+                description = "تسديد مستحقات الديوان الوطني للمطبوعات المدرسية من بيع الكتاب المدرسي"
             )
         )
 
         /**
-         * Builds the complete official list of Articles for any given `fiscalYear` with `spentAmount = 0.0`
-         * so new fiscal years start completely clean while having all official chapters and articles ready.
+         * Builds the complete official list of Expenditure Articles for any given `fiscalYear`
+         * according to the 2024 educational budget nomenclature model.
          */
         fun buildCleanArticlesForFiscalYear(
             fiscalYear: Int,
@@ -329,7 +274,6 @@ abstract class BudgetDatabase : RoomDatabase() {
             fun art(
                 baseId: String,
                 chapterId: String,
-                section: SectionType,
                 chNum: Int,
                 artNum: Int,
                 name: String,
@@ -345,7 +289,7 @@ abstract class BudgetDatabase : RoomDatabase() {
                     baseArticleId = baseId,
                     fiscalYear = fiscalYear,
                     chapterId = chapterId,
-                    sectionType = section.name,
+                    sectionType = SectionType.EXPENDITURE.name,
                     chapterNumber = chNum,
                     articleNumber = artNum,
                     officialCode = "ب$chPrefix / م$artPrefix",
@@ -358,454 +302,236 @@ abstract class BudgetDatabase : RoomDatabase() {
             }
 
             return listOf(
-                // ================= العنوان الأول: الإيرادات =================
-                // الباب 01: إعانات التسيير الممنوحة من طرف الدولة
-                art(
-                    baseId = Circular13Constants.REV_CATERING_BASE_ID,
-                    chapterId = "REV_CH01",
-                    section = SectionType.REVENUE,
-                    chNum = 1,
-                    artNum = 1,
-                    name = "إعانة التسيير للتغذية والمنح الوطنية (المنشور 13/2026)",
-                    desc = "تُحسب وتُضخ آلياً: (داخلي × 33,696.00 د.ج) + (نصف داخلي × 13,248.00 د.ج)",
-                    allocated = cateringSubsidy,
-                    spent = cateringSubsidy,
-                    isCatering = true
-                ),
-                art(
-                    baseId = "REV_01_02",
-                    chapterId = "REV_CH01",
-                    section = SectionType.REVENUE,
-                    chNum = 1,
-                    artNum = 2,
-                    name = "إعانات التسيير للمصالح المشتركة",
-                    desc = "حصة الدولة المخصصة لتغطية نفقات تسيير المصالح المشتركة للمؤسسة",
-                    allocated = 3_850_000.0,
-                    spent = 3_850_000.0
-                ),
-                art(
-                    baseId = "REV_01_03",
-                    chapterId = "REV_CH01",
-                    section = SectionType.REVENUE,
-                    chNum = 1,
-                    artNum = 3,
-                    name = "الإعانة المخصصة لتعويض الاستهلاك المنزلي للكهرباء والغاز (للجنوب)",
-                    desc = "تعويض مصاريف الاستهلاك المنزلي للطاقة لفائدة موظفي ولايات الجنوب",
-                    allocated = 0.0
-                ),
-                art(
-                    baseId = "REV_01_04",
-                    chapterId = "REV_CH01",
-                    section = SectionType.REVENUE,
-                    chNum = 1,
-                    artNum = 4,
-                    name = "إعانات التسيير الإضافية المختلفة",
-                    desc = "اعتمادات التسيير الإضافية أو الاستثنائية الممنوحة من الوصاية",
-                    allocated = 150_000.0,
-                    spent = 150_000.0
-                ),
-
-                // الباب 02: الإعانات الممنوحة من الجماعات المحلية والمؤسسات والهيئات العمومية
-                art(
-                    baseId = "REV_02_01",
-                    chapterId = "REV_CH02",
-                    section = SectionType.REVENUE,
-                    chNum = 2,
-                    artNum = 1,
-                    name = "إعانات الجماعات المحلية والهيئات العمومية",
-                    desc = "المساهمات المالية الممنوحة من الولاية أو البلدية",
-                    allocated = 100_000.0,
-                    spent = 100_000.0
-                ),
-
-                // الباب 03: الهبات والوصايا
-                art(
-                    baseId = "REV_03_01",
-                    chapterId = "REV_CH03",
-                    section = SectionType.REVENUE,
-                    chNum = 3,
-                    artNum = 1,
-                    name = "الهبات والوصايا",
-                    desc = "الهبات والتبرعات المرخص بقبولها قانوناً",
-                    allocated = 0.0
-                ),
-
-                // الباب 04: إيرادات مرتبطة بنشاط المؤسسة
-                art(
-                    baseId = "REV_04_01",
-                    chapterId = "REV_CH04",
-                    section = SectionType.REVENUE,
-                    chNum = 4,
-                    artNum = 1,
-                    name = "عائدات الإيجار والأعباء الملحقة (السكنات الوظيفية: كهرباء، غاز، ماء)",
-                    desc = "اقتطاعات الكراء ومستحقات استهلاك الماء والكهرباء والغاز للسكنات الوظيفية",
-                    allocated = 165_000.0
-                ),
-                art(
-                    baseId = "REV_04_02",
-                    chapterId = "REV_CH04",
-                    section = SectionType.REVENUE,
-                    chNum = 4,
-                    artNum = 2,
-                    name = "مستحقات المبيت",
-                    desc = "إيرادات الإيواء والمبيت المرخص به بالمؤسسة",
-                    allocated = 0.0
-                ),
-                art(
-                    baseId = "REV_04_03",
-                    chapterId = "REV_CH04",
-                    section = SectionType.REVENUE,
-                    chNum = 4,
-                    artNum = 3,
-                    name = "بيع الأشياء المصنوعة وبقايا الخبز والخردوات",
-                    desc = "عائدات بيع بقايا الخبز والفضلات ومنتجات الورشات والحدائق",
-                    allocated = 25_000.0
-                ),
-                art(
-                    baseId = "REV_04_04",
-                    chapterId = "REV_CH04",
-                    section = SectionType.REVENUE,
-                    chNum = 4,
-                    artNum = 4,
-                    name = "إيرادات عمليات الإسقاط",
-                    desc = "محصول بيع العتاد والأثاث المسقط من الجرد العام",
-                    allocated = 0.0
-                ),
-                art(
-                    baseId = "REV_04_05",
-                    chapterId = "REV_CH04",
-                    section = SectionType.REVENUE,
-                    chNum = 4,
-                    artNum = 5,
-                    name = "مبيعات الكتاب المدرسي والوثائق شبه المدرسية (دفتر المراسلة)",
-                    desc = "إيرادات بيع الكتب المدرسية ودفاتر المراسلة للتلاميذ",
-                    allocated = 95_000.0
-                ),
-
-                // الباب 05: إيرادات مختلفة
-                art(
-                    baseId = "REV_05_01",
-                    chapterId = "REV_CH05",
-                    section = SectionType.REVENUE,
-                    chNum = 5,
-                    artNum = 1,
-                    name = "تحصيل الدفع غير المستحق وتعويضات التأمين والإيرادات الطارئة",
-                    desc = "استرجاع المبالغ المدفوعة بغير حق والتعويضات المختلفة",
-                    allocated = 0.0
-                ),
-
-                // الباب 06: إيرادات ناتجة عن تسديد حقوق التسجيل
-                art(
-                    baseId = "REV_06_01",
-                    chapterId = "REV_CH06",
-                    section = SectionType.REVENUE,
-                    chNum = 6,
-                    artNum = 1,
-                    name = "إيرادات ناتجة عن تسديد حقوق التسجيل والتراسل",
-                    desc = "حقوق التسجيل المدرسي ومساهمات التراسل",
-                    allocated = 45_000.0
-                ),
-
-                // الباب 07: إيرادات الإطعام
-                art(
-                    baseId = "REV_07_01",
-                    chapterId = "REV_CH07",
-                    section = SectionType.REVENUE,
-                    chNum = 7,
-                    artNum = 1,
-                    name = "مساهمات عائلات التلاميذ غير الممنوحين في التغذية (داخلي / نصف داخلي)",
-                    desc = "مستحقات النظام الداخلي ونصف الداخلي على عاتق الأولياء",
-                    allocated = 360_000.0
-                ),
-                art(
-                    baseId = "REV_07_02",
-                    chapterId = "REV_CH07",
-                    section = SectionType.REVENUE,
-                    chNum = 7,
-                    artNum = 2,
-                    name = "الإيرادات الناتجة عن إطعام مستخدمي قطاع التربية (الطاولة المشتركة)",
-                    desc = "مساهمات الموظفين والأعوان والملتقيات التكوينية في الطاولة المشتركة",
-                    allocated = 120_000.0
-                ),
-                art(
-                    baseId = "REV_07_03",
-                    chapterId = "REV_CH07",
-                    section = SectionType.REVENUE,
-                    chNum = 7,
-                    artNum = 3,
-                    name = "إيرادات ناتجة عن إطعام المدعوين وآخرين",
-                    desc = "مستحقات إطعام الضيوف والمدعوين المرخص لهم",
-                    allocated = 0.0
-                ),
-
-                // الباب 08: إيرادات تسيير أقسام الرياضة والدراسة
-                art(
-                    baseId = "REV_08_01",
-                    chapterId = "REV_CH08",
-                    section = SectionType.REVENUE,
-                    chNum = 8,
-                    artNum = 1,
-                    name = "إعانات تسيير أقسام الرياضة والدراسة",
-                    desc = "مخصصات الدولة لتسيير أقسام الرياضة والدراسة (إن وجدت)",
-                    allocated = 0.0
-                ),
-
-                // الباب 09: إعانات ذات طابع خاص
-                art(
-                    baseId = "REV_09_01",
-                    chapterId = "REV_CH09",
-                    section = SectionType.REVENUE,
-                    chNum = 9,
-                    artNum = 1,
-                    name = "إعانات المنحة المدرسية الخاصة ووحدة الكشف والمتابعة والكتاب المدرسي",
-                    desc = "الاعتمادات الخاصة بالمنحة المدرسية ووحدة الكشف UDS ومجانية الكتاب",
-                    allocated = 250_000.0
-                ),
-
-                // ================= العنوان الثاني: النفقات (الأبواب 01 إلى 17) =================
+                // ================= الفرع الأول: نفقات تسيير المصالح =================
                 // الباب 01: تسديد المصاريف
                 art(
                     baseId = "EXP_01_01",
                     chapterId = "EXP_CH01",
-                    section = SectionType.EXPENDITURE,
                     chNum = 1,
                     artNum = 1,
-                    name = "مصاريف المهام والتنقلات",
-                    desc = "تعويضات المهام والتنقلات الرسمية للمسير المالي والموظفين والأعوان",
-                    allocated = 90_000.0
+                    name = "مصاريف المهام و التنقلات والاستقبالات داخل التراب الوطني والخرجات البيداغوجية وكذا خارج التراب الوطني بالنسبة للمشاركين في أولمبياد المواد التعليمية",
+                    desc = "تعويضات المهام، التنقلات، الاستقبالات، الخرجات البيداغوجية، ومشاركات أولمبياد المواد التعليمية",
+                    allocated = 120_000.0
                 ),
                 art(
                     baseId = "EXP_01_02",
                     chapterId = "EXP_CH01",
-                    section = SectionType.EXPENDITURE,
                     chNum = 1,
                     artNum = 2,
-                    name = "مصاريف الاستقبالات الرسمية",
-                    desc = "نفقات الاستقبالات الرسمية والاجتماعات البيداغوجية والإدارية",
-                    allocated = 35_000.0
+                    name = "مصاريف الدراسة، الخبرة، المعاونون والمحضرون الفعليون",
+                    desc = "أتعاب الخبراء، الاستشارات الفنية، ومستحقات المعاونين والمحضرين الفعليين",
+                    allocated = 45_000.0
                 ),
 
-                // الباب 02: التكاليف الملحقة (شرط ≥ 35% من نفقات التسيير العام - المنشور 13/2026)
+                // الباب 02: التكاليف الملحقة (شرط ≥ 35% من نفقات تسيير المصالح)
                 art(
                     baseId = "EXP_02_01",
                     chapterId = Circular13Constants.EXP_CHAPTER_2_BASE_ID,
-                    section = SectionType.EXPENDITURE,
                     chNum = 2,
                     artNum = 1,
-                    name = "الماء، الكهرباء، الغاز، الوقود والطاقة الشمسية",
-                    desc = "تسديد فواتير سونلغاز (كهرباء وغاز التدفئة) وفواتير المياه (ADE / سيال)",
-                    allocated = 1_120_000.0
+                    name = "الماء، الكهرباء والغاز، الوقود، والطاقة الشمسية",
+                    desc = "تسديد فواتير سونلغاز والمياه ووقود التدفئة والطاقة الشمسية",
+                    allocated = 1_250_000.0
                 ),
                 art(
                     baseId = "EXP_02_02",
                     chapterId = Circular13Constants.EXP_CHAPTER_2_BASE_ID,
-                    section = SectionType.EXPENDITURE,
                     chNum = 2,
                     artNum = 2,
-                    name = "مصاريف البريد والمواصلات (الهاتف، الفاكس، الأنترنت، الطوابع)",
-                    desc = "أتاوى الهاتف الثابت واشتراكات الأنترنت (اتصالات الجزائر) والطوابع البريدية",
-                    allocated = 145_000.0
+                    name = "مصاريف البريد والمواصلات (اتاوات الهاتف، التلكس، الانترنيت والرسوم المختلفة)",
+                    desc = "اشتراكات الهاتف الثابت والأنترنت لاتصالات الجزائر والطوابع البريدية والرسوم",
+                    allocated = 150_000.0
                 ),
                 art(
                     baseId = "EXP_02_03",
                     chapterId = Circular13Constants.EXP_CHAPTER_2_BASE_ID,
-                    section = SectionType.EXPENDITURE,
                     chNum = 2,
                     artNum = 3,
-                    name = "مصاريف الإعلان في الصحف والنشر",
-                    desc = "تكاليف نشر الإعلانات عن الاستشارات والصفقات في الجرائد الوطنية",
+                    name = "مصاريف الإعلان في الصحف",
+                    desc = "نشر الإعلانات عن الاستشارات والمناقصات في الجرائد اليومية",
                     allocated = 35_000.0
                 ),
                 art(
                     baseId = "EXP_02_04",
                     chapterId = Circular13Constants.EXP_CHAPTER_2_BASE_ID,
-                    section = SectionType.EXPENDITURE,
                     chNum = 2,
                     artNum = 4,
-                    name = "تعويض الاستهلاك المنزلي للكهرباء والغاز (للجنوب)",
-                    desc = "خاص بمؤسسات ولايات الجنوب",
+                    name = "تعويض مصاريف الاستهلاك المنزلي للكهرباء والغاز بنسبة 50% للجنوب الكبير",
+                    desc = "خاص بموظفي المؤسسات التربوية بولايات الجنوب الكبير",
                     allocated = 0.0
                 ),
                 art(
                     baseId = "EXP_02_05",
                     chapterId = Circular13Constants.EXP_CHAPTER_2_BASE_ID,
-                    section = SectionType.EXPENDITURE,
                     chNum = 2,
                     artNum = 5,
-                    name = "اقتناء وتركيب لواحق الهاتف والربط بشبكة الأنترنت",
-                    desc = "لوازم الشبكة الهاتفية الداخلية وأجهزة التوجيه والربط بالأنترنت",
-                    allocated = 30_000.0
+                    name = "اقتناء وتركيب لواحق الهاتف والربط بالانترنيت",
+                    desc = "أجهزة التوجيه (Modem/Router)، الأسلاك، والموزعات ولواحق الشبكة الداخلية",
+                    allocated = 40_000.0
+                ),
+                art(
+                    baseId = "EXP_02_06",
+                    chapterId = Circular13Constants.EXP_CHAPTER_2_BASE_ID,
+                    chNum = 2,
+                    artNum = 6,
+                    name = "تأمين المباني",
+                    desc = "عقود التأمين الشاملة لهياكل ومباني المؤسسة التعليمية ضد الأخطار",
+                    allocated = 50_000.0
                 ),
 
                 // الباب 03: اللوازم
                 art(
                     baseId = "EXP_03_01",
                     chapterId = "EXP_CH03",
-                    section = SectionType.EXPENDITURE,
                     chNum = 3,
                     artNum = 1,
-                    name = "أدوات ولوازم المكتب والمطبوعات والسجلات الإدارية والمحاسبية",
-                    desc = "سجلات المحاسبة العمومية، دفاتر الوصولات، الحوالات، والأدوات المكتبية",
-                    allocated = 210_000.0
+                    name = "اقتناء لوازم المكتب",
+                    desc = "الأدوات المكتبية، الملفات، السجلات الإدارية والمحاسبية ودفاتر الوصولات",
+                    allocated = 180_000.0
                 ),
                 art(
                     baseId = "EXP_03_02",
                     chapterId = "EXP_CH03",
-                    section = SectionType.EXPENDITURE,
                     chNum = 3,
                     artNum = 2,
-                    name = "البياضة",
-                    desc = "اقتناء وتجديد الأفرشة والأغطية والمآزر ومستلزمات المرقد والمطعم",
-                    allocated = 85_000.0
+                    name = "مستهلكات وبرامج الإعلام الآلي",
+                    desc = "خراطيش الحبر، أحبار الطابعات، وسائط التخزين، ورخص البرمجيات",
+                    allocated = 160_000.0
                 ),
                 art(
                     baseId = "EXP_03_03",
                     chapterId = "EXP_CH03",
-                    section = SectionType.EXPENDITURE,
                     chNum = 3,
                     artNum = 3,
-                    name = "مواد التنظيف والتطهير",
-                    desc = "مواد التنظيف والتعقيم اليومي للحجرات والمراقد والمطعم والمرافق الصحية",
-                    allocated = 240_000.0
+                    name = "مصاريف النسخ والطبع",
+                    desc = "طبع الوثائق الرسمية، الشهادات، الاستمارات، وسحب المطبوعات الإدارية",
+                    allocated = 90_000.0
                 ),
                 art(
                     baseId = "EXP_03_04",
                     chapterId = "EXP_CH03",
-                    section = SectionType.EXPENDITURE,
                     chNum = 3,
                     artNum = 4,
-                    name = "المواد الصيدلانية",
-                    desc = "الأدوية البسيطة والضمادات ومستلزمات الإسعاف الأولي بالمؤسسة",
-                    allocated = 40_000.0
+                    name = "البياضة",
+                    desc = "الأفرشة، الأغطية، الشراشف، المآزر، ومستلزمات المراقد والمطعم",
+                    allocated = 80_000.0
+                ),
+                art(
+                    baseId = "EXP_03_05",
+                    chapterId = "EXP_CH03",
+                    chNum = 3,
+                    artNum = 5,
+                    name = "المواد الصيدلانية ومواد أخرى",
+                    desc = "الأدوية الأولية، مستلزمات الإسعاف السريع، والضمادات الطبية",
+                    allocated = 45_000.0
+                ),
+                art(
+                    baseId = "EXP_03_06",
+                    chapterId = "EXP_CH03",
+                    chNum = 3,
+                    artNum = 6,
+                    name = "مواد التنظيف",
+                    desc = "مواد الغسيل والتعقيم والتطهير اليومي للحجرات والمطعم والمرافق الصحية",
+                    allocated = 220_000.0
                 ),
 
                 // الباب 04: الأدوات والأثاث
                 art(
                     baseId = "EXP_04_01",
                     chapterId = "EXP_CH04",
-                    section = SectionType.EXPENDITURE,
                     chNum = 4,
                     artNum = 1,
-                    name = "تجديد وصيانة الأدوات والأثاث المكتبي والمدرسي",
-                    desc = "اقتناء وتصليح الطاولات والكراسي والخزائن والأثاث الإداري",
-                    allocated = 160_000.0
+                    name = "تجديد وصيانة أدوات وأثاث المكاتب والعتاد المدرسي",
+                    desc = "تصليح الطاولات والمقاعد وخزائن المكاتب والحجرات الدراسية",
+                    allocated = 170_000.0
                 ),
                 art(
                     baseId = "EXP_04_02",
                     chapterId = "EXP_CH04",
-                    section = SectionType.EXPENDITURE,
                     chNum = 4,
                     artNum = 2,
-                    name = "تجديد وصيانة عتاد وأدوات المطعم والمطبخ والنادي",
-                    desc = "اقتناء الأواني المهنية، صيانة غرف التبريد، الطاهيات والأفران",
-                    allocated = 220_000.0
+                    name = "اقتناء وصيانة أجهزة الإعلام الآلي",
+                    desc = "صيانة الحواسيب، الطابعات، شاشات العرض، وأجهزة النسخ الرقمي",
+                    allocated = 180_000.0
                 ),
                 art(
                     baseId = "EXP_04_03",
                     chapterId = "EXP_CH04",
-                    section = SectionType.EXPENDITURE,
                     chNum = 4,
                     artNum = 3,
-                    name = "اقتناء وصيانة أجهزة الإعلام الآلي والنسخ والتصوير ولواحقها",
-                    desc = "صيانة الحواسيب، الطابعات، آلات السحب الرقمية، وقطع الغيار",
-                    allocated = 190_000.0
+                    name = "اقتناء وصيانة أدوات الوقاية والأمن",
+                    desc = "تعبئة ومراقبة مطفآت الحريق، أجهزة الإنذار، وأدوات الحماية والسلامة",
+                    allocated = 70_000.0
                 ),
                 art(
                     baseId = "EXP_04_04",
                     chapterId = "EXP_CH04",
-                    section = SectionType.EXPENDITURE,
                     chNum = 4,
                     artNum = 4,
-                    name = "اقتناء وصيانة وسائل الوقاية والأمن (قارورات الإطفاء)",
-                    desc = "مراقبة وتعبئة واقتناء مطفآت الحريق ومعدات الأمن الداخلي",
-                    allocated = 65_000.0
+                    name = "تجديد وصيانة لوازم ومستلزمات المطعم",
+                    desc = "أواني المطبخ، صيانة الأفران وغرف التبريد والطاهيات المهنية",
+                    allocated = 190_000.0
+                ),
+                art(
+                    baseId = "EXP_04_05",
+                    chapterId = "EXP_CH04",
+                    chNum = 4,
+                    artNum = 5,
+                    name = "اقتناء الستائر والأعلام ولوازم الداخلية",
+                    desc = "ستائر الحجرات والإدارة، الأعلام الوطنية، ومستلزمات النظام الداخلي",
+                    allocated = 60_000.0
                 ),
 
                 // الباب 05: اللوازم البيداغوجية
                 art(
                     baseId = "EXP_05_01",
                     chapterId = "EXP_CH05",
-                    section = SectionType.EXPENDITURE,
                     chNum = 5,
                     artNum = 1,
-                    name = "الوسائل التعليمية ولوازم التجارب ومواد المخابر والورشات",
-                    desc = "المحاليل الكيميائية، الزجاجيات، ومستلزمات الأعمال التطبيقية للتلاميذ",
-                    allocated = 230_000.0
+                    name = "لوازم التجارب",
+                    desc = "الأدوات والمعدات والمجسمات العلمية لإجراء التجارب البيداغوجية",
+                    allocated = 160_000.0
                 ),
                 art(
                     baseId = "EXP_05_02",
                     chapterId = "EXP_CH05",
-                    section = SectionType.EXPENDITURE,
                     chNum = 5,
                     artNum = 2,
-                    name = "لوازم الطباشير، الأقلام، السبورات ووسائل الإيضاح",
-                    desc = "أقلام اللباد للسبورات البيضاء، الطباشير، الطلاسات، والخرائط التعليمية",
-                    allocated = 95_000.0
+                    name = "مواد التجارب والكواشف ومواد المخابر",
+                    desc = "المحاليل الكيميائية والكواشف المخبرية والزجاجيات للأعمال التطبيقية",
+                    allocated = 180_000.0
                 ),
                 art(
                     baseId = "EXP_05_03",
                     chapterId = "EXP_CH05",
-                    section = SectionType.EXPENDITURE,
                     chNum = 5,
                     artNum = 3,
-                    name = "ورق ولوازم السحب والنسخ للفروض والاختبارات",
-                    desc = "رزم الورق A4 وأحبار الناسخات لطبع مواضيع الفروض والاختبارات الفصلية",
-                    allocated = 280_000.0
-                ),
-                art(
-                    baseId = "EXP_05_04",
-                    chapterId = "EXP_CH05",
-                    section = SectionType.EXPENDITURE,
-                    chNum = 5,
-                    artNum = 4,
-                    name = "الدفاتر المدرسية والوثائق شبه المدرسية (دفتر المراسلة)",
-                    desc = "طبع واقتناء دفاتر المراسلة، دفاتر النصوص، وأوراق الإجابة للامتحانات",
-                    allocated = 95_000.0
+                    name = "الإستنساخ، الطباشير، الأقلام، الطلاسات وغيرها",
+                    desc = "أوراق الفروض والاختبارات، أحبار السحب، أقلام اللباد للسبورات البيضاء والطباشير",
+                    allocated = 320_000.0
                 ),
 
-                // الباب 06: نفقات الإطعام (المنشور 13/2026)
+                // الباب 06: نفقات الإطعام
                 art(
                     baseId = Circular13Constants.EXP_CATERING_BASE_ID,
                     chapterId = Circular13Constants.EXP_CHAPTER_6_BASE_ID,
-                    section = SectionType.EXPENDITURE,
                     chNum = 6,
                     artNum = 1,
-                    name = "إطعام التلاميذ الداخليين ونصف الداخليين (المنشور 13/2026)",
-                    desc = "مخصص التغذية المدرسية المحسوب آلياً: (داخلي × 33,696 د.ج) + (نصف داخلي × 13,248 د.ج)",
+                    name = "نفقات الإطعام",
+                    desc = "إطعام التلاميذ الداخليين ونصف الداخليين والمستخدمين في الطاولة المشتركة والمدعوين",
                     allocated = cateringSubsidy,
                     spent = 0.0,
                     isCatering = true
-                ),
-                art(
-                    baseId = "EXP_06_02",
-                    chapterId = Circular13Constants.EXP_CHAPTER_6_BASE_ID,
-                    section = SectionType.EXPENDITURE,
-                    chNum = 6,
-                    artNum = 2,
-                    name = "إطعام المستخدمين (الطاولة المشتركة) والملتقيات التكوينية",
-                    desc = "نفقات تغذية الموظفين والأعوان المسجلين في الطاولة المشتركة",
-                    allocated = 120_000.0
-                ),
-                art(
-                    baseId = "EXP_06_03",
-                    chapterId = Circular13Constants.EXP_CHAPTER_6_BASE_ID,
-                    section = SectionType.EXPENDITURE,
-                    chNum = 6,
-                    artNum = 3,
-                    name = "إطعام المدعوين وآخرين",
-                    desc = "نفقات إطعام الضيوف وأعضاء لجان الامتحانات الرسمية المسخرين",
-                    allocated = 0.0
                 ),
 
                 // الباب 07: الألبسة
                 art(
                     baseId = "EXP_07_01",
                     chapterId = "EXP_CH07",
-                    section = SectionType.EXPENDITURE,
                     chNum = 7,
                     artNum = 1,
-                    name = "ألبسة العمل والوقاية للعمال المهنيين وأعوان الأمن والمخابر",
-                    desc = "اقتناء البذلات المهنية والأحذية الواقية والقفازات للعمال المهنيين",
+                    name = "ملابس العمل (السائق، الحاجب، عون الإستقبال، أعوان الخدمات)",
+                    desc = "البذلات المهنية، الأحذية الواقية، والقفازات للعمال المهنيين وأعوان الخدمات",
                     allocated = 85_000.0
                 ),
 
@@ -813,219 +539,325 @@ abstract class BudgetDatabase : RoomDatabase() {
                 art(
                     baseId = "EXP_08_01",
                     chapterId = "EXP_CH08",
-                    section = SectionType.EXPENDITURE,
                     chNum = 8,
                     artNum = 1,
-                    name = "تأمين التلاميذ في الخرجات البيداغوجية وتأمين ممتلكات المؤسسة",
-                    desc = "عقود التأمين والمسؤولية المدنية وتأمين الهياكل والتجهيزات",
-                    allocated = 65_000.0
+                    name = "تأمين التلاميذ اثناء الخرجات البيداغوجية",
+                    desc = "التأمين ضد الحوادث المدرسية والمسؤولية المدنية أثناء الرحلات والخرجات التعليمية",
+                    allocated = 55_000.0
                 ),
 
                 // الباب 09: نفقات التكوين
                 art(
                     baseId = "EXP_09_01",
                     chapterId = "EXP_CH09",
-                    section = SectionType.EXPENDITURE,
                     chNum = 9,
                     artNum = 1,
-                    name = "نفقات التكوين والملتقيات التربوية",
-                    desc = "نفقات تنظيم العمليات التكوينية والأيام الدراسية وتحسين المستوى",
+                    name = "نفقات التكوين والتحسين المستمر للمستوى المنظم على المستوى الولائي",
+                    desc = "الأيام الدراسية والملتقيات التربوية التحسينية المنظمة ولائياً",
                     allocated = 40_000.0
+                ),
+                art(
+                    baseId = "EXP_09_02",
+                    chapterId = "EXP_CH09",
+                    chNum = 9,
+                    artNum = 2,
+                    name = "نفقات التكوين ما قبل الترقية على المستوى الولائي",
+                    desc = "دورات التكوين المتخصص للموظفين المقبلين على الترقية على مستوى الولاية",
+                    allocated = 30_000.0
+                ),
+                art(
+                    baseId = "EXP_09_03",
+                    chapterId = "EXP_CH09",
+                    chNum = 9,
+                    artNum = 3,
+                    name = "نفقات الامتحانات والمسابقات المهنية على المستوى الولائي",
+                    desc = "تنظيم وتأطير الامتحانات والمسابقات المهنية الولائية",
+                    allocated = 25_000.0
+                ),
+                art(
+                    baseId = "EXP_09_04",
+                    chapterId = "EXP_CH09",
+                    chNum = 9,
+                    artNum = 4,
+                    name = "تشجيع التكوين أثناء الخدمة وعن بعد لمعلمي التعليم الابتدائي",
+                    desc = "دعم عمليات التكوين المستمر والتعليم عن بعد لمعلمي وأساتذة الابتدائي",
+                    allocated = 20_000.0
+                ),
+                art(
+                    baseId = "EXP_09_05",
+                    chapterId = "EXP_CH09",
+                    chNum = 9,
+                    artNum = 5,
+                    name = "نفقات التكوين الخاصة بالتحسين المستمر للمستوى المنظم على المستوى الجهوي و/أو الوطني، التكوين ما قبل الترقية، نفقات الامتحانات",
+                    desc = "تغطية نفقات المشاركة في التكوينات والامتحانات الوطنية والجهوية",
+                    allocated = 30_000.0
                 ),
 
                 // الباب 10: حظيرة السيارات
                 art(
                     baseId = "EXP_10_01",
                     chapterId = "EXP_CH10",
-                    section = SectionType.EXPENDITURE,
                     chNum = 10,
                     artNum = 1,
                     name = "اقتناء وتجديد السيارات",
-                    desc = "اقتناء سيارة مصلحة جديدة بعد إسقاط السيارة القديمة بترخيص",
+                    desc = "اقتناء سيارة جديدة للمؤسسة بعد إسقاط السيارة القديمة بترخيص رسمي",
                     allocated = 0.0
                 ),
                 art(
                     baseId = "EXP_10_02",
                     chapterId = "EXP_CH10",
-                    section = SectionType.EXPENDITURE,
                     chNum = 10,
                     artNum = 2,
                     name = "الوقود والزيوت",
-                    desc = "وصولات البنزين والمازوت وزيوت المحرك لسيارة المؤسسة",
-                    allocated = 95_000.0
+                    desc = "وصولات البنزين والمازوت وزيوت المحرك لسيارات المصلحة التابعة للمؤسسة",
+                    allocated = 110_000.0
                 ),
                 art(
                     baseId = "EXP_10_03",
                     chapterId = "EXP_CH10",
-                    section = SectionType.EXPENDITURE,
                     chNum = 10,
                     artNum = 3,
-                    name = "صيانة وتصليح السيارات وشراء قطع الغيار",
-                    desc = "إصلاح الأعطاب الميكانيكية والكهربائية واقتناء قطع الغيار والبطارية",
-                    allocated = 65_000.0
+                    name = "صيانة وتصليح وشحن السيارات وشراء قطع الغيار",
+                    desc = "الإصلاحات الميكانيكية والكهربائية واقتناء قطع الغيار والبطاريات والشحن",
+                    allocated = 70_000.0
                 ),
                 art(
                     baseId = "EXP_10_04",
                     chapterId = "EXP_CH10",
-                    section = SectionType.EXPENDITURE,
                     chNum = 10,
                     artNum = 4,
-                    name = "اقتناء العجلات المطاطية",
-                    desc = "تجديد الإطارات المطاطية لسيارة المؤسسة",
-                    allocated = 35_000.0
+                    name = "اقتناء العجلات",
+                    desc = "تجديد الإطارات المطاطية لسيارات المؤسسة",
+                    allocated = 40_000.0
                 ),
                 art(
                     baseId = "EXP_10_05",
                     chapterId = "EXP_CH10",
-                    section = SectionType.EXPENDITURE,
                     chNum = 10,
                     artNum = 5,
-                    name = "مصاريف الترقيم، التأمين، قسيمة السيارات والمراقبة التقنية",
-                    desc = "عقد تأمين السيارة، قسيمة السيارات السنوية، ومحضر المراقبة التقنية",
+                    name = "مصاريف الترقيم والتعريف",
+                    desc = "لوحات الترقيم، بطاقات الترقيم، ورسوم التعريف الإداري",
+                    allocated = 15_000.0
+                ),
+                art(
+                    baseId = "EXP_10_06",
+                    chapterId = "EXP_CH10",
+                    chNum = 10,
+                    artNum = 6,
+                    name = "تأمين السيارات",
+                    desc = "عقد التأمين السنوي للمسؤولية المدنية والتأمين الشامل لسيارة المصلحة",
                     allocated = 45_000.0
+                ),
+                art(
+                    baseId = "EXP_10_07",
+                    chapterId = "EXP_CH10",
+                    chNum = 10,
+                    artNum = 7,
+                    name = "مصاريف اقتناء قسيمة السيارات",
+                    desc = "قسيمة السيارات السنوية الصادرة عن إدارة الضرائب",
+                    allocated = 18_000.0
+                ),
+                art(
+                    baseId = "EXP_10_08",
+                    chapterId = "EXP_CH10",
+                    chNum = 10,
+                    artNum = 8,
+                    name = "مصاريف المراقبة التقنية للسيارات",
+                    desc = "الفحص والمراقبة الدورية المعتمدة لسلامة سيارات المصلحة",
+                    allocated = 12_000.0
                 ),
 
                 // الباب 11: نفقات تسيير وحدات الكشف والمتابعة (UDS)
                 art(
                     baseId = "EXP_11_01",
                     chapterId = "EXP_CH11",
-                    section = SectionType.EXPENDITURE,
                     chNum = 11,
                     artNum = 1,
                     name = "نفقات تسيير وحدات الكشف والمتابعة (UDS)",
-                    desc = "لوازم ومستلزمات تسيير وصيانة وحدة الكشف والمتابعة الصحية المدرسية",
-                    allocated = 50_000.0
+                    desc = "أدوات ومستلزمات تسيير وفحص التلاميذ في وحدة الكشف والمتابعة الصحية",
+                    allocated = 60_000.0
                 ),
 
                 // الباب 12: المكتبة المدرسية
                 art(
                     baseId = "EXP_12_01",
                     chapterId = "EXP_CH12",
-                    section = SectionType.EXPENDITURE,
                     chNum = 12,
                     artNum = 1,
                     name = "شراء كتب ومجلات تربوية",
-                    desc = "اقتناء الكتب، المراجع العلمية، القواميس، والقصص لإثراء المكتبة المدرسية",
-                    allocated = 90_000.0
+                    desc = "اقتناء الكتب، المراجع العلمية، القواميس، والمؤلفات للمطالعة المدرسية",
+                    allocated = 95_000.0
                 ),
                 art(
                     baseId = "EXP_12_02",
                     chapterId = "EXP_CH12",
-                    section = SectionType.EXPENDITURE,
                     chNum = 12,
                     artNum = 2,
-                    name = "الاشتراك في المجلات والدوريات البيداغوجية",
-                    desc = "الاشتراك السنوي في النشرة الرسمية لوزارة التربية والدوريات البيداغوجية",
-                    allocated = 25_000.0
+                    name = "الإشتراك في المجلات والدوريات البيداغوجية",
+                    desc = "الاشتراك السنوي في النشرة الرسمية للتربية الوطنية والدوريات المتخصصة",
+                    allocated = 30_000.0
                 ),
 
                 // الباب 13: النفقات المتعلقة بالنشاط الثقافي والرياضي
                 art(
                     baseId = "EXP_13_01",
                     chapterId = "EXP_CH13",
-                    section = SectionType.EXPENDITURE,
                     chNum = 13,
                     artNum = 1,
-                    name = "النفقات المتعلقة بالنشاط الثقافي والجوائز التشجيعية",
-                    desc = "تمويل النوادي الثقافية والعلمية وجوائز تكريم التلاميذ المتفوقين",
-                    allocated = 110_000.0
+                    name = "النفقات المتعلقة بالنشاط الثقافي",
+                    desc = "النوادي الثقافية والعلمية، المسابقات الفكرية، وجوائز التلاميذ المتفوقين",
+                    allocated = 115_000.0
                 ),
                 art(
                     baseId = "EXP_13_02",
                     chapterId = "EXP_CH13",
-                    section = SectionType.EXPENDITURE,
                     chNum = 13,
                     artNum = 2,
                     name = "النفقات المتعلقة بالنشاط الرياضي",
-                    desc = "اقتناء الكرات والشباك والألبسة الرياضية لتنشيط الرابطة الرياضية المدرسية",
-                    allocated = 75_000.0
+                    desc = "الألبسة الرياضية، الكرات، الشباك، ولوازم المنافسات الرياضية المدرسية",
+                    allocated = 80_000.0
                 ),
 
                 // الباب 14: صيانة وتصليح المباني البيداغوجية والإدارية والهياكل الملحقة
                 art(
                     baseId = "EXP_14_01",
                     chapterId = "EXP_CH14",
-                    section = SectionType.EXPENDITURE,
                     chNum = 14,
                     artNum = 1,
                     name = "صيانة وتصليح المباني البيداغوجية والإدارية والهياكل الملحقة",
-                    desc = "أشغال الترميم والصيانة للحجرات، المخابر، الإدارة، المطعم، والمراقد",
-                    allocated = 280_000.0
+                    desc = "أشغال الترميم والتهيئة للحجرات الدراسية والمخابر والإدارة والمطعم والمراقد",
+                    allocated = 300_000.0
                 ),
                 art(
                     baseId = "EXP_14_02",
                     chapterId = "EXP_CH14",
-                    section = SectionType.EXPENDITURE,
                     chNum = 14,
                     artNum = 2,
-                    name = "اقتناء مواد البناء، الترصيص، الخردوات، التدفئة، التكييف وأدوات الصيانة الصغيرة",
-                    desc = "شراء الطلاء، الأسمنت، الحنفيات، المصابيح، ولوازم الكهرباء والتدفئة للصيانة الذاتية",
-                    allocated = 185_000.0
+                    name = "اقتناء مواد: البناء، الترصيص، الخردوات، كهرباء، التدفئة، التكييف وأدوات الصيانة الصغيرة",
+                    desc = "شراء الطلاء، الأسمنت، الحنفيات، مصابيح الإنارة، مفاتيح الكهرباء ولوازم التدفئة للصيانة الذاتية",
+                    allocated = 210_000.0
                 ),
                 art(
                     baseId = "EXP_14_03",
                     chapterId = "EXP_CH14",
-                    section = SectionType.EXPENDITURE,
                     chNum = 14,
                     artNum = 3,
                     name = "صيانة المساحات الخضراء والمسالك",
-                    desc = "أدوات البستنة، الغرس، وتنقية قنوات صرف مياه الأمطار",
+                    desc = "أدوات ومستلزمات البستنة، تشذيب الأشجار وتنقية المسالك وقنوات تصريف مياه الأمطار",
                     allocated = 45_000.0
                 ),
                 art(
                     baseId = "EXP_14_04",
                     chapterId = "EXP_CH14",
-                    section = SectionType.EXPENDITURE,
                     chNum = 14,
                     artNum = 4,
-                    name = "مصاريف النقل (نقل الخردوات والفضلات)",
-                    desc = "تكاليف شحن ونقل الردوم والنفايات الصلبة خارج المؤسسة",
+                    name = "مصاريف نقل (الخردوات والمهملات...)",
+                    desc = "أجور وشحن ونقل النفايات الصلبة والردوم خارج المؤسسة",
                     allocated = 25_000.0
                 ),
 
-                // الباب 15: المصاريف القضائية والتعويضات
+                // الباب 15: المصاريف القضائية والتعويضات المستحقة على عاتق الدولة
                 art(
                     baseId = "EXP_15_01",
                     chapterId = "EXP_CH15",
-                    section = SectionType.EXPENDITURE,
                     chNum = 15,
                     artNum = 1,
-                    name = "المصاريف القضائية والتعويضات",
-                    desc = "تسديد المصاريف القضائية وأتعاب المحضرين والتعويضات القانونية",
+                    name = "المصاريف القضائية والتعويضات المستحقة على عاتق الدولة",
+                    desc = "المصاريف القضائية وأتعاب المحضرين القضائيين وأحكام التعويضات القانونية",
                     allocated = 0.0
                 ),
 
-                // الباب 16: الفرع الثاني - نفقات تسيير أقسام الرياضة والدراسة
+                // ================= الفرع الثاني: نفقات تسيير أقسام الرياضة والدراسة =================
+                // الباب 16: نفقات تسيير أقسام الرياضة والدراسة
                 art(
                     baseId = "EXP_16_01",
                     chapterId = "EXP_CH16",
-                    section = SectionType.EXPENDITURE,
                     chNum = 16,
                     artNum = 1,
-                    name = "نفقات تسيير أقسام الرياضة والدراسة",
-                    desc = "التغذية المكملة واللوازم البيداغوجية والرياضية لأقسام الرياضة والدراسة",
+                    name = "مصاريف الإطعام",
+                    desc = "الوجبات الغذائية المكملة المخصصة لتلاميذ أقسام الرياضة والدراسة",
+                    allocated = 0.0
+                ),
+                art(
+                    baseId = "EXP_16_02",
+                    chapterId = "EXP_CH16",
+                    chNum = 16,
+                    artNum = 2,
+                    name = "نقل وتأمين التلاميذ",
+                    desc = "نقل وتأمين رياضيي النخبة المتمدرسين في التنقلات والمنافسات الرسمية",
+                    allocated = 0.0
+                ),
+                art(
+                    baseId = "EXP_16_03",
+                    chapterId = "EXP_CH16",
+                    chNum = 16,
+                    artNum = 3,
+                    name = "اقتناء الأدوات واللوازم الرياضية والبيداغوجية",
+                    desc = "التجهيزات والألبسة والأدوات الرياضية الخاصة برياضيي أقسام الرياضة ودراسة",
                     allocated = 0.0
                 ),
 
-                // الباب 17: الفرع الثالث - نفقات ذات طابع خاص
+                // ================= الفرع الثالث: نفقات ذات طابع خاص =================
+                // الباب 17: نفقات النشاط التربوي الاستثنائي
                 art(
                     baseId = "EXP_17_01",
                     chapterId = "EXP_CH17",
-                    section = SectionType.EXPENDITURE,
                     chNum = 17,
                     artNum = 1,
-                    name = "نفقات المنحة المدرسية الخاصة والكتاب المدرسي والامتحانات الرسمية",
-                    desc = "صرف المنحة الخاصة للتلاميذ المعوزين وتسديد فواتير الديوان الوطني للمطبوعات المدرسية",
+                    name = "الإطعام",
+                    desc = "نفقات الإطعام في النشاطات والملتقيات والتظاهرات التربوية الاستثنائية",
+                    allocated = 0.0
+                ),
+                art(
+                    baseId = "EXP_17_02",
+                    chapterId = "EXP_CH17",
+                    chNum = 17,
+                    artNum = 2,
+                    name = "مصاريف الإقامة والتمدرس",
+                    desc = "مصاريف الإيواء والإقامة والتأطير الاستثنائي للتلاميذ",
+                    allocated = 0.0
+                ),
+
+                // الباب 18: المنحة المدرسية الخاصة لفائدة التلاميذ المعوزين
+                art(
+                    baseId = "EXP_18_01",
+                    chapterId = "EXP_CH18",
+                    chNum = 18,
+                    artNum = 1,
+                    name = "المنحة المدرسية الخاصة لفائدة التلاميذ المعوزين",
+                    desc = "صرف المنحة المدرسية الخاصة (5,000 د.ج) للتلاميذ المسجلين في قوائم التضامن",
                     allocated = 250_000.0
+                ),
+
+                // الباب 19: المنح المدرسية للتجهيز
+                art(
+                    baseId = "EXP_19_01",
+                    chapterId = "EXP_CH19",
+                    chNum = 19,
+                    artNum = 1,
+                    name = "منحة التجهيز لفائدة التلاميذ",
+                    desc = "منحة التجهيز المخصصة للتلاميذ في التعليم التقني والتجهيز الأولي",
+                    allocated = 0.0
+                ),
+
+                // الباب 20: نفقات الكتاب المدرسي
+                art(
+                    baseId = "EXP_20_01",
+                    chapterId = "EXP_CH20",
+                    chNum = 20,
+                    artNum = 1,
+                    name = "تسديد مستحقات الديوان الوطني للمطبوعات المدرسية من بيع الكتاب المدرسي",
+                    desc = "تسديد مستحقات بيع الكتب والمطبوعات المدرسية للديوان الوطني (CRDDP)",
+                    allocated = 350_000.0
                 )
             )
         }
 
         /**
          * Seeds the database with:
-         * 1) Official Circular 29/2018 & Circular 13/2026 chapters & articles.
-         * 2) Historical Fiscal Year 2025 (أرشيف السنة المالية 2025) with its own saved transactions.
-         * 3) Active Fiscal Year 2026 (السنة المالية الجارية 2026) with its own independent transactions.
+         * 1) Official 2024 educational expenditures nomenclature chapters & articles.
+         * 2) Historical Fiscal Year 2025 archived records.
+         * 3) Active Fiscal Year 2026 clean initial allocations.
          */
         suspend fun seedDatabaseIfEmpty(dao: BudgetDao) {
             if (dao.getChaptersCount() > 0) return
@@ -1036,7 +868,7 @@ abstract class BudgetDatabase : RoomDatabase() {
             val dayMs = 86_400_000L
 
             // -----------------------------------------------------------------
-            // 1. Seed Historical Fiscal Year 2025 (محفوظة في الأرشيف مع نفقاتها)
+            // 1. Seed Historical Fiscal Year 2025 (أرشيف 2025)
             // -----------------------------------------------------------------
             val subsidy2025 = Circular13Constants.calculateCateringSubsidy(
                 internalCount = 38,
@@ -1058,8 +890,8 @@ abstract class BudgetDatabase : RoomDatabase() {
                 when (art.baseArticleId) {
                     Circular13Constants.EXP_CATERING_BASE_ID -> art.copy(spentAmount = 4_820_000.0)
                     "EXP_02_01" -> art.copy(allocatedAmount = 1_450_000.0, spentAmount = 1_390_000.0)
-                    "EXP_03_03" -> art.copy(spentAmount = 225_000.0)
-                    "EXP_05_03" -> art.copy(spentAmount = 265_000.0)
+                    "EXP_03_06" -> art.copy(spentAmount = 210_000.0)
+                    "EXP_05_03" -> art.copy(spentAmount = 295_000.0)
                     else -> art
                 }
             }
@@ -1072,8 +904,8 @@ abstract class BudgetDatabase : RoomDatabase() {
                     chapterId = Circular13Constants.EXP_CHAPTER_6_BASE_ID,
                     chapterName = "الباب 06: نفقات الإطعام",
                     articleCode = "ب06 / م01",
-                    articleName = "إطعام التلاميذ الداخليين ونصف الداخليين (المنشور 13/2026)",
-                    voucherNumber = "MD-2025/184",
+                    articleName = "نفقات الإطعام",
+                    orderNumber = "BC-2025/184",
                     supplierName = "الديوان الوطني للحبوب والتموين الغذائي",
                     description = "تسوية الحوصلة السنوية لتموين المطعم المدرسي لسنة 2025",
                     amount = 4_820_000.0,
@@ -1085,8 +917,8 @@ abstract class BudgetDatabase : RoomDatabase() {
                     chapterId = Circular13Constants.EXP_CHAPTER_2_BASE_ID,
                     chapterName = "الباب 02: التكاليف الملحقة",
                     articleCode = "ب02 / م01",
-                    articleName = "الماء، الكهرباء، الغاز، الوقود والطاقة الشمسية",
-                    voucherNumber = "MD-2025/162",
+                    articleName = "الماء، الكهرباء والغاز، الوقود، والطاقة الشمسية",
+                    orderNumber = "BC-2025/162",
                     supplierName = "سونلغاز + سيال",
                     description = "تسديد فواتير استهلاك الكهرباء والغاز والماء لسنة 2025",
                     amount = 1_390_000.0,
@@ -1098,46 +930,30 @@ abstract class BudgetDatabase : RoomDatabase() {
                     chapterId = "EXP_CH05",
                     chapterName = "الباب 05: اللوازم البيداغوجية",
                     articleCode = "ب05 / م03",
-                    articleName = "ورق ولوازم السحب والنسخ للفروض والاختبارات",
-                    voucherNumber = "MD-2025/140",
-                    supplierName = "المؤسسة الوطنية للوراقة",
-                    description = "اقتناء الورق والأحبار لاختبارات الفصول الثلاثة 2025",
-                    amount = 265_000.0,
+                    articleName = "الإستنساخ، الطباشير، الأقلام، الطلاسات وغيرها",
+                    orderNumber = "BC-2025/138",
+                    supplierName = "مؤسسة الورق والطباعة الحديثة",
+                    description = "اقتناء رزم ورق السحب وأقلام السبورات لفروض وامتحانات 2025",
+                    amount = 295_000.0,
                     timestamp = now - (dayMs * 240)
-                ),
-                TransactionEntity(
-                    fiscalYear = 2025,
-                    articleId = Circular13Constants.articleRecordId(2025, "EXP_03_03"),
-                    chapterId = "EXP_CH03",
-                    chapterName = "الباب 03: اللوازم",
-                    articleCode = "ب03 / م03",
-                    articleName = "مواد التنظيف والتطهير",
-                    voucherNumber = "MD-2025/112",
-                    supplierName = "مؤسسة التوزيع لمواد النظافة",
-                    description = "اقتناء مواد التنظيف والتطهير السنوية لسنة 2025",
-                    amount = 225_000.0,
-                    timestamp = now - (dayMs * 260)
                 )
             )
             txs2025.forEach { dao.insertTransaction(it) }
 
             // -----------------------------------------------------------------
-            // 2. Seed Active Fiscal Year 2026 (السنة المالية الجارية 2026)
+            // 2. Seed Active Fiscal Year 2026 (السنة المالية الجارية)
             // -----------------------------------------------------------------
-            val initialInternal2026 = 42
-            val initialSemiInternal2026 = 310
             val subsidy2026 = Circular13Constants.calculateCateringSubsidy(
-                internalCount = initialInternal2026,
-                semiInternalCount = initialSemiInternal2026
+                internalCount = 42,
+                semiInternalCount = 310
             )
-
             val config2026 = InstitutionConfigEntity(
                 fiscalYear = 2026,
                 institutionName = "ثانوية الشهيد العربي بن مهيدي - النموذجية",
                 wilayaName = "مديرية التربية لولاية الجزائر وسط",
                 regime = "داخلي ونصف داخلي",
-                internalScholarshipCount = initialInternal2026,
-                semiInternalScholarshipCount = initialSemiInternal2026,
+                internalScholarshipCount = 42,
+                semiInternalScholarshipCount = 310,
                 isActiveYear = true,
                 updatedAt = now
             )
@@ -1145,13 +961,10 @@ abstract class BudgetDatabase : RoomDatabase() {
 
             val articles2026 = buildCleanArticlesForFiscalYear(2026, subsidy2026).map { art ->
                 when (art.baseArticleId) {
-                    Circular13Constants.EXP_CATERING_BASE_ID -> art.copy(spentAmount = 2_450_000.0)
-                    "EXP_02_01" -> art.copy(spentAmount = 540_000.0)
-                    "EXP_02_02" -> art.copy(spentAmount = 82_000.0)
-                    "EXP_03_01" -> art.copy(spentAmount = 125_000.0)
-                    "EXP_03_03" -> art.copy(spentAmount = 148_000.0)
-                    "EXP_05_03" -> art.copy(spentAmount = 195_000.0)
-                    "EXP_14_01" -> art.copy(spentAmount = 175_000.0)
+                    Circular13Constants.EXP_CATERING_BASE_ID -> art.copy(spentAmount = 1_280_000.0)
+                    "EXP_02_01" -> art.copy(spentAmount = 345_000.0)
+                    "EXP_03_06" -> art.copy(spentAmount = 68_000.0)
+                    "EXP_05_03" -> art.copy(spentAmount = 112_000.0)
                     else -> art
                 }
             }
@@ -1164,12 +977,12 @@ abstract class BudgetDatabase : RoomDatabase() {
                     chapterId = Circular13Constants.EXP_CHAPTER_6_BASE_ID,
                     chapterName = "الباب 06: نفقات الإطعام",
                     articleCode = "ب06 / م01",
-                    articleName = "إطعام التلاميذ الداخليين ونصف الداخليين (المنشور 13/2026)",
-                    voucherNumber = "MD-2026/048",
-                    supplierName = "الديوان الوطني للحبوب والتموين الغذائي",
-                    description = "تسديد فاتورة المواد الغذائية العامة واللحوم والخضر للمطعم المدرسي",
-                    amount = 2_450_000.0,
-                    timestamp = now - (dayMs * 2)
+                    articleName = "نفقات الإطعام",
+                    orderNumber = "BC-2026/041",
+                    supplierName = "مجمع أغروديف - تموين الحبوب ومشتقاتها",
+                    description = "تموين المطعم المدرسي بالمواد الغذائية الأساسية (الثلاثي الأول)",
+                    amount = 1_280_000.0,
+                    timestamp = now - (dayMs * 18)
                 ),
                 TransactionEntity(
                     fiscalYear = 2026,
@@ -1177,12 +990,12 @@ abstract class BudgetDatabase : RoomDatabase() {
                     chapterId = Circular13Constants.EXP_CHAPTER_2_BASE_ID,
                     chapterName = "الباب 02: التكاليف الملحقة",
                     articleCode = "ب02 / م01",
-                    articleName = "الماء، الكهرباء، الغاز، الوقود والطاقة الشمسية",
-                    voucherNumber = "MD-2026/039",
-                    supplierName = "سونلغاز - مديرية التوزيع الجزائر الوسطى",
-                    description = "تسديد فاتورة استهلاك الكهرباء والغاز الطبيعي والمياه",
-                    amount = 540_000.0,
-                    timestamp = now - (dayMs * 7)
+                    articleName = "الماء، الكهرباء والغاز، الوقود، والطاقة الشمسية",
+                    orderNumber = "BC-2026/028",
+                    supplierName = "سونلغاز (مديرية التوزيع الجزائر)",
+                    description = "فاتورة استهلاك الغاز الطبيعي للتدفئة المركزية والكهرباء",
+                    amount = 345_000.0,
+                    timestamp = now - (dayMs * 25)
                 ),
                 TransactionEntity(
                     fiscalYear = 2026,
@@ -1190,64 +1003,25 @@ abstract class BudgetDatabase : RoomDatabase() {
                     chapterId = "EXP_CH05",
                     chapterName = "الباب 05: اللوازم البيداغوجية",
                     articleCode = "ب05 / م03",
-                    articleName = "ورق ولوازم السحب والنسخ للفروض والاختبارات",
-                    voucherNumber = "MD-2026/031",
-                    supplierName = "الشركة الوطنية للوراقة والطباعة المكتبية",
-                    description = "اقتناء رزم الورق A4 وأحبار الناسخات الرقمية للفروض والاختبارات",
-                    amount = 195_000.0,
-                    timestamp = now - (dayMs * 12)
+                    articleName = "الإستنساخ، الطباشير، الأقلام، الطلاسات وغيرها",
+                    orderNumber = "BC-2026/015",
+                    supplierName = "مكتبة ومطبعة النجاح التربوية",
+                    description = "شراء رزم أوراق السحب A4 وأحبار آلات النسخ لاختبارات الفصل الأول",
+                    amount = 112_000.0,
+                    timestamp = now - (dayMs * 35)
                 ),
                 TransactionEntity(
                     fiscalYear = 2026,
-                    articleId = Circular13Constants.articleRecordId(2026, "EXP_14_01"),
-                    chapterId = "EXP_CH14",
-                    chapterName = "الباب 14: صيانة وتصليح المباني البيداغوجية والإدارية والهياكل الملحقة",
-                    articleCode = "ب14 / م01",
-                    articleName = "صيانة وتصليح المباني البيداغوجية والإدارية والهياكل الملحقة",
-                    voucherNumber = "MD-2026/024",
-                    supplierName = "مقاولة الأشغال والصيانة المدرسية",
-                    description = "صيانة شبكة التدفئة المركزية وترميم مساكة الجناح البيداغوجي",
-                    amount = 175_000.0,
-                    timestamp = now - (dayMs * 16)
-                ),
-                TransactionEntity(
-                    fiscalYear = 2026,
-                    articleId = Circular13Constants.articleRecordId(2026, "EXP_03_03"),
+                    articleId = Circular13Constants.articleRecordId(2026, "EXP_03_06"),
                     chapterId = "EXP_CH03",
                     chapterName = "الباب 03: اللوازم",
-                    articleCode = "ب03 / م03",
-                    articleName = "مواد التنظيف والتطهير",
-                    voucherNumber = "MD-2026/019",
-                    supplierName = "مؤسسة التوريد لمواد النظافة والتعقيم",
-                    description = "اقتناء مواد التنظيف والتطهير للحجرات والمطعم والمرافق الصحية",
-                    amount = 148_000.0,
-                    timestamp = now - (dayMs * 21)
-                ),
-                TransactionEntity(
-                    fiscalYear = 2026,
-                    articleId = Circular13Constants.articleRecordId(2026, "EXP_03_01"),
-                    chapterId = "EXP_CH03",
-                    chapterName = "الباب 03: اللوازم",
-                    articleCode = "ب03 / م01",
-                    articleName = "أدوات ولوازم المكتب والمطبوعات والسجلات الإدارية والمحاسبية",
-                    voucherNumber = "MD-2026/014",
-                    supplierName = "مطبعة السجلات الإدارية والمحاسبية",
-                    description = "اقتناء السجلات المحاسبية ودفاتر الوصولات والحوالات ولوازم المكتب",
-                    amount = 125_000.0,
-                    timestamp = now - (dayMs * 25)
-                ),
-                TransactionEntity(
-                    fiscalYear = 2026,
-                    articleId = Circular13Constants.articleRecordId(2026, "EXP_02_02"),
-                    chapterId = Circular13Constants.EXP_CHAPTER_2_BASE_ID,
-                    chapterName = "الباب 02: التكاليف الملحقة",
-                    articleCode = "ب02 / م02",
-                    articleName = "مصاريف البريد والمواصلات (الهاتف، الفاكس، الأنترنت، الطوابع)",
-                    voucherNumber = "MD-2026/008",
-                    supplierName = "اتصالات الجزائر",
-                    description = "تسديد اشتراكات الألياف البصرية والهاتف الثابت للمؤسسة",
-                    amount = 82_000.0,
-                    timestamp = now - (dayMs * 29)
+                    articleCode = "ب03 / م06",
+                    articleName = "مواد التنظيف",
+                    orderNumber = "BC-2026/009",
+                    supplierName = "مؤسسة النظافة والتطهير للوسط",
+                    description = "اقتناء مواد التنظيف والمطهرات والمكانس للحجرات والمرافق",
+                    amount = 68_000.0,
+                    timestamp = now - (dayMs * 45)
                 )
             )
             txs2026.forEach { dao.insertTransaction(it) }
